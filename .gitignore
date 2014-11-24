@@ -1,4 +1,6 @@
+pyOlog.egg-info
 /target/
 *.pyc
 *.swp
 build
+dist

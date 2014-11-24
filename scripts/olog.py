@@ -3,11 +3,20 @@ from __future__ import print_function
 
 import os, sys
 
-from argparse import ArgumentParser, FileType, RawDescriptionHelpFormatter
+import argparse
+import subprocess
 from ConfigParser import SafeConfigParser
+
 from getpass import getpass, getuser
 
 from pyOlog import LogEntry, Logbook, Tag, Attachment, OlogClient
+
+try:
+  import keyring
+except ImportError:
+  have_keyring = False
+else:
+  have_keyring = True
 
 description = """\
 Command line utility for making OLog entries.
@@ -34,12 +43,27 @@ url for the Olog and also the default logbook to use.
 
 """
 
+class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, 
+                      argparse.RawDescriptionHelpFormatter):
+  pass
+
 def get_option(cfg, base, opt):
   """Check if option base/opt is in config cfg"""
   if cfg.has_option(base, opt):
     return cfg.get(base, opt)
   else:
     return None
+
+def get_screenshot(root = False, itype = 'png'):
+  """Open ImageMagick and get screngrab as png."""
+  if root:
+    opts = '-window root'
+  else:
+    opts = ''
+  image = subprocess.Popen('import {0} {1}:-'.format(opts,itype),
+                           shell = True, 
+                           stdout = subprocess.PIPE)
+  return image.communicate()[0]
 
 def olog():
   """Command line utility for making Olog entries"""
@@ -69,8 +93,8 @@ def olog():
 
   # Parse Command Line Options
 
-  parser = ArgumentParser(epilog = description,
-                          formatter_class=RawDescriptionHelpFormatter)
+  parser = argparse.ArgumentParser(epilog = description,
+                                   formatter_class=argparse.RawDescriptionHelpFormatter)
   parser.add_argument('-l', '--logbooks', dest = 'logbooks',
                     help = "Logbook Name(s)", nargs = '*',
                     default = default_logbooks)
@@ -81,8 +105,8 @@ def olog():
                     default = default_username,
                     help = "Username for Olog Access")
   parser.add_argument('-f', '--file', dest = 'text',
-                    type=FileType('r'),
-                    default=sys.stdin,
+                    type=argparse.FileType('r'),
+                    default=None,
                     help = "Filename of log entry text.")
   parser.add_argument('--url', dest = 'url',
                     help = "Base URL for Olog Access",
@@ -93,12 +117,23 @@ def olog():
   parser.add_argument('-p', '--passwd', dest = 'passwd',
                     help = "Password for logging entry")
   group = parser.add_mutually_exclusive_group()
+  group.add_argument('-s','--screenshot', dest = 'screenshot',
+                    help = 'Take screenshot of whole screen', 
+                    default = False,
+                    action = 'store_true')
+  group.add_argument('-g', '--grap', dest = 'grab',
+                    help = 'Grab area of screen and add as attatchment.',
+                    default = False,
+                    action = 'store_true')
+  group = parser.add_mutually_exclusive_group()
   group.add_argument('-v', action = 'store_true', dest = 'verbose',
                      help = "Verbose output", default = False)
   group.add_argument('-q', action = 'store_true', dest = 'quiet',
                      help = "Suppress all output", default = False)
 
   args = parser.parse_args()
+
+  # Check for 
 
   if args.url is None:
     parser.error('The URL must be specified')
@@ -111,10 +146,6 @@ def olog():
     for f in files:
       print("Reading config from {}".format(f))
 
-  # Get the text for the log entry
-  with args.text as file:
-    text = file.read()
-
   logbooks = [Logbook(n) for n in args.logbooks]
   if args.tags is not None:
     tags     = [Tag(n) for n in args.tags]
@@ -126,6 +157,29 @@ def olog():
   else:
     attachments = None
 
+  # Grab Screenshot 
+
+  if args.screenshot or args.grab:
+    if not args.quiet and args.grab:
+      print("Select area of screen to add to log entry.", 
+            file = sys.stderr)
+    screenshot = Attachment(get_screenshot(args.screenshot), 'screenshot.png')
+    if attachments is None:
+      attachments = [screenshot]
+    else:
+      attachments.append(screenshot)
+
+  # Get the text for the log entry
+  if args.text is not None:
+    with args.text as file:
+      text = file.read()
+  else:
+    if not args.quiet:
+      print("Type log entry below (Enter -END- to end):",
+            file = sys.stderr)
+    sentinel = '-END-'
+    text = '\n'.join(iter(raw_input, sentinel))
+
   # First create the log entry
 
   log_entry = LogEntry(text, args.user, logbooks,
@@ -134,18 +188,29 @@ def olog():
 
   # Now get the password
 
+  passwd = None
   if args.passwd is None:
     if default_passwd is None:
-      passwd = getpass('Olog Password for {}:'.format(args.user))
+      if have_keyring:
+        passwd = keyring.get_password('olog', args.user)
+      if passwd is None:
+        passwd = getpass('Olog Password for {}:'.format(args.user))
     else:
       passwd = default_passwd
   else:
     passwd = args.passwd
-
+        
   # Now do the log entry
 
   client = OlogClient(args.url, args.user, passwd)
   client.log(log_entry)
-  
+
+def main():
+  try:
+    olog()
+  except KeyboardInterrupt:
+    print('\nAborted.\n')
+    sys.exit()
+
 if __name__ == '__main__':
-  olog()
+  main()

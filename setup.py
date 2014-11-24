@@ -7,7 +7,10 @@ Created on Jan 10, 2013
 @author: shroffk
 '''
 
-from distutils.core import setup
+try:
+  from setuptools import setup
+except ImportError:
+  from distutils.core import setup
 
 
 setup(name='pyOlog',
@@ -17,5 +20,9 @@ setup(name='pyOlog',
       author_email='shroffk@bnl.gov',
       packages=['pyOlog'],
       requires=['requests (>=2.0.0)', 'urllib3 (>=1.7.1)'],
-      scripts=['scripts/olog', 'scripts/ologgrab']
+      scripts=['scripts/olog.py', 'scripts/ologgrab'],
+      entry_points = {
+        'console_scripts': [
+          'olog = olog:main']
+      }
      )
