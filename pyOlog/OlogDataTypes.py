@@ -145,18 +145,26 @@ class Attachment(object):
     TODO this is not thread safe    
     '''
     
-    def __init__(self, file):
+    def __init__(self, file, filename = None):
         '''
         Create Attachment 
+
+        file can either be a file object or a string. For a 
+        string, the filename must be specified.
+
         >> Attachment(file=open('/home/usr/databrowser.plt')
         >> Attachment(file=open('test.jpg','rb')
+        >> Attachment(file=string, filename = 'mydata.png')
         '''
         self.__file=file
-        
+        self.__filename=filename
     def getFile(self):
         return self.__file
     def getFilePost(self):
-        basename = os.path.basename(self.__file.name)
+        if self.__filename is None: 
+          basename = os.path.basename(self.__file.name)
+        else:
+          basename = os.path.basename(self.__filename)
         mtype = mimetypes.guess_type(basename)[0]
         if mtype is None:
           mtype = 'application/octet-stream'
