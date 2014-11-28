@@ -1,0 +1,28 @@
+
+package:
+    name: pyOlog
+    version: "0.1.0"
+
+source:
+    git_url: https://github.com/NSLS-II-CSX/pyOlog.git
+
+build:
+    number: 0
+
+requirements:
+    build:
+        - python
+        - setuptools
+        - requests
+
+    run:
+        - python
+
+test:
+    imports:
+        - pyOlog
+
+about:
+    home: http://olog.github.io/
+    license: BSD
+    summary: Python client for the OLog
