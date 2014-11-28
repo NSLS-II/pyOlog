@@ -6,20 +6,42 @@ Created on Jan 10, 2013
 
 @author: shroffk
 '''
+import logging, sys
+fmt = logging.Formatter("%(asctime)-15s [%(name)5s:%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(fmt)
+logger.addHandler(handler)
+
+from getpass import getpass
+
 import requests
+from requests.adapters import HTTPAdapter
+from requests import auth
+
+import json
 from json import JSONEncoder, JSONDecoder
+
+from urllib import urlencode
+from urllib3.poolmanager import PoolManager
+
+from collections import OrderedDict
+
+import tempfile
+import ssl 
+
 from OlogDataTypes import LogEntry, Logbook, Tag, Property, Attachment
 from _conf import _conf
-import json
-from requests import auth
-import logging
-from urllib import urlencode
-from collections import OrderedDict
-import tempfile
 
-import ssl 
-from requests.adapters import HTTPAdapter
-from urllib3.poolmanager import PoolManager
+try:
+  import keyring
+except ImportError:
+  have_keyring = False
+else:
+  have_keyring = True
+
 
 class OlogClient(object):
     '''
@@ -32,25 +54,56 @@ class OlogClient(object):
     __logbooksResource = '/resources/logbooks'
     __attachmentResource = '/resources/attachments'
 
-    def __init__(self, url=None, username=None, password=None):
+    def __init__(self, url=None, username=None, password=None, interactive = True):
         '''
-        Constructor
+        Initialize OlogClient and configure session
+
+        :param url: The base URL of the Olog glassfish server.
+        :param username: The username for authentication.
+        :param password: The password for authentication.
+        :param interactive: If true then if no password is found, ask for it on th
+          console
+        
+        If :param username: is None, then the username will be read from the config
+        file. If no :param username: is avaliable then the session is opened without
+        authentication. 
+
+        If :param password: is None then the password will be read from the config file
+        if this is not set, then if the keyring package is avaliable it will be read 
+        from the gnome keyring. Failing that, if interactive is true, it will be asked
+        for on the command line.
         '''
-        try:     
-            requests_log = logging.getLogger("requests")
-            requests_log.setLevel(logging.INFO)
-            self.__url = self.__getDefaultConfig('url', url)
-            self.__username = self.__getDefaultConfig('username', username)
-            self.__password = self.__getDefaultConfig('password', password)
-            if self.__username and self.__password:
-                self.__auth = auth.HTTPBasicAuth(self.__username, self.__password)
+
+        self.__url = self.__getDefaultConfig('url', url)
+        self.__username = self.__getDefaultConfig('username', username)
+        self.__password = self.__getDefaultConfig('password', password)
+        
+        logger.info("Using base URL %s", self.__url)
+
+        if self.__username and not self.__password:
+          # Try to get password from keyring
+          if have_keyring:
+            logger.info("Checking keyring for username %s", self.__username)
+            self.__password = keyring.get_password('olog', self.__username)
+            if self.__password:
+              logger.info("Password obtained from keyring.")
             else:
-                self.__auth = None
-            self.__session = requests.Session()
-            self.__session.mount('https://', Ssl3HttpAdapter())
-            self.__session.get(self.__url + self.__tagsResource, verify=False, headers=self.__jsonheader).raise_for_status()
-        except:
-            raise
+              logger.info("No password in keyring.")
+          else:
+            logger.info("No keyring avaliable")
+          # If this did not work (no passwd or no keyring)
+          if self.__password is None and interactive:
+            self.__password = getpass('Olog Password for {}:'.format(self.__username))
+        if self.__username and self.__password:
+            logger.info("Using username %s for authentication.", self.__username)
+            self.__auth = auth.HTTPBasicAuth(self.__username, self.__password)
+        else:
+            logger.info("No authentiation configured.")
+            self.__auth = None
+        
+        self.__session = requests.Session()
+        self.__session.mount('https://', Ssl3HttpAdapter())
+        self.__session.get(self.__url + self.__tagsResource, verify=False, headers=self.__jsonheader).raise_for_status()
     
     def __getDefaultConfig(self, arg, value):
         '''
@@ -63,7 +116,10 @@ class OlogClient(object):
     
     def log(self, logEntry):
         '''
-        create a logEntry
+        Create a log entry
+
+        :param logEntry: An instance of LogEntry to add to the Olog
+
         '''
         resp = self.__session.post(self.__url + self.__logsResource,
                      data=LogEntryEncoder().encode(logEntry),
@@ -85,7 +141,9 @@ class OlogClient(object):
     
     def createLogbook(self, logbook):
         '''
-        Create Logbook
+        Create a Logbook
+
+        :param logbook: An instance of Logbook to create in the Olog.
         '''
         self.__session.put(self.__url + self.__logbooksResource + '/' + logbook.getName(),
                      data=LogbookEncoder().encode(logbook),
@@ -96,7 +154,9 @@ class OlogClient(object):
         
     def createTag(self, tag):
         '''
-        Create Tag
+        Create a Tag
+
+        :param tag: An instance of Tag to create in the Olog.
         '''
         url = self.__url + self.__tagsResource + '/' + tag.getName()
         self.__session.put(url,
@@ -107,7 +167,9 @@ class OlogClient(object):
         
     def createProperty(self, property):
         '''
-        Create Property
+        Create a Property
+
+        :param property: An instance of Property to create in the Olog.
         '''
         url = self.__url + self.__propertiesResource + '/' + property.getName()
         p = PropertyEncoder().encode(property)
@@ -156,7 +218,9 @@ class OlogClient(object):
     
     def listAttachments(self, logEntryId):
         '''
-        Search for attachments on logentry _id_
+        Search for attachments on a logentry
+
+        :param logEntryId: The ID of the log entry to list the attachments.
         '''
         resp = self.__session.get(self.__url+self.__attachmentResource+'/'+str(logEntryId),
                          verify=False,
@@ -178,7 +242,7 @@ class OlogClient(object):
     
     def listTags(self):
         '''
-        List all tags.
+        List all tags in the Olog.
         '''
         resp = self.__session.get(self.__url + self.__tagsResource,
                             verify=False,
@@ -192,7 +256,7 @@ class OlogClient(object):
     
     def listLogbooks(self):
         '''
-        List all logbooks
+        List all logbooks in the Olog.
         '''
         resp = self.__session.get(self.__url + self.__logbooksResource,
                             verify=False,
@@ -206,7 +270,7 @@ class OlogClient(object):
     
     def listProperties(self):
         '''
-        List all Properties and their attributes
+        List all Properties and their attributes in the Olog.
         '''
         resp = self.__session.get(self.__url + self.__propertiesResource,
                             verify=False,
@@ -221,7 +285,15 @@ class OlogClient(object):
                         
     def delete(self, **kwds):
         '''
-        Method to delete a logEntry, logbook, property, tag
+        Method to delete a logEntry, logbook, property, tag.
+
+        :param logEntryId: ID of log entry to delete.
+        :param logbookName: The name (as a string) of the logbook to delete.
+        :param tagName: The name (as a string) of the tag to delete.
+        :param propertyName: The name (as a string) of the property to delete.
+
+        Example:
+
         delete(logEntryId = int)
         >>> delete(logEntryId=1234)
         

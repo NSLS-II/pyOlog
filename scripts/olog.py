@@ -5,7 +5,6 @@ import os, sys
 
 import argparse
 import subprocess
-from ConfigParser import SafeConfigParser
 
 from getpass import getpass, getuser
 
@@ -43,10 +42,6 @@ url for the Olog and also the default logbook to use.
 
 """
 
-class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, 
-                      argparse.RawDescriptionHelpFormatter):
-  pass
-
 def get_option(cfg, base, opt):
   """Check if option base/opt is in config cfg"""
   if cfg.has_option(base, opt):
@@ -68,41 +63,18 @@ def get_screenshot(root = False, itype = 'png'):
 def olog():
   """Command line utility for making Olog entries"""
 
-  # Get Defaults from Config File
-
-  cfg = SafeConfigParser()
-  files = ['/etc/olog.conf',
-           os.path.join(os.getenv('HOME'),'.olog.conf')]
-  files = cfg.read(files)
-
-  default_url = get_option(cfg, 'olog', 'url')
-
-  default_logbooks = get_option(cfg, 'olog', 'logbooks')
-  if default_logbooks is not None:
-    default_logbooks = default_logbooks.split(',')
-
-  default_username = get_option(cfg, 'olog', 'username')
-  if default_username is None:
-    default_username = getuser()
-
-  default_passwd = get_option(cfg, 'olog', 'password')
-
-  default_tags = get_option(cfg, 'olog', 'tags')
-  if default_tags is not None:
-    default_tags = default_tags.split(',')
-
   # Parse Command Line Options
 
   parser = argparse.ArgumentParser(epilog = description,
                                    formatter_class=argparse.RawDescriptionHelpFormatter)
   parser.add_argument('-l', '--logbooks', dest = 'logbooks',
                     help = "Logbook Name(s)", nargs = '*',
-                    default = default_logbooks)
+                    default = None)
   parser.add_argument('-t', '--tags', dest = 'tags',
                     nargs = '*', help = "OLog Tag Name(s)",
-                    default = default_tags)
+                    default = None)
   parser.add_argument('-u', '--user', dest = 'user',
-                    default = default_username,
+                    default = None,
                     help = "Username for Olog Access")
   parser.add_argument('-f', '--file', dest = 'text',
                     type=argparse.FileType('r'),
@@ -110,12 +82,13 @@ def olog():
                     help = "Filename of log entry text.")
   parser.add_argument('--url', dest = 'url',
                     help = "Base URL for Olog Access",
-                    default = default_url)
+                    default = None)
   parser.add_argument('-a', '--attach', dest = 'attach',
                     nargs = '*',
                     help = "filename of attachments")
   parser.add_argument('-p', '--passwd', dest = 'passwd',
-                    help = "Password for logging entry")
+                    help = "Password for logging entry",
+                    default = None)
   group = parser.add_mutually_exclusive_group()
   group.add_argument('-s','--screenshot', dest = 'screenshot',
                     help = 'Take screenshot of whole screen', 
@@ -133,20 +106,10 @@ def olog():
 
   args = parser.parse_args()
 
-  # Check for 
-
-  if args.url is None:
-    parser.error('The URL must be specified')
-  if args.logbooks is None:
-    parser.error('At least one logbook must be specified')
-  if args.user is None:
-    parser.error('You must specify a username')
-
-  if args.verbose:
-    for f in files:
-      print("Reading config from {}".format(f))
-
-  logbooks = [Logbook(n) for n in args.logbooks]
+  if args.logbooks:
+    logbooks = [Logbook(n) for n in args.logbooks]
+  else:
+    logbooks = None
   if args.tags is not None:
     tags     = [Tag(n) for n in args.tags]
   else:
@@ -185,24 +148,11 @@ def olog():
   log_entry = LogEntry(text, args.user, logbooks,
                       tags = tags,
                       attachments = attachments)
+  print(log_entry)
 
-  # Now get the password
-
-  passwd = None
-  if args.passwd is None:
-    if default_passwd is None:
-      if have_keyring:
-        passwd = keyring.get_password('olog', args.user)
-      if passwd is None:
-        passwd = getpass('Olog Password for {}:'.format(args.user))
-    else:
-      passwd = default_passwd
-  else:
-    passwd = args.passwd
-        
   # Now do the log entry
 
-  client = OlogClient(args.url, args.user, passwd)
+  client = OlogClient(args.url, args.user, args.passwd)
   client.log(log_entry)
 
 def main():

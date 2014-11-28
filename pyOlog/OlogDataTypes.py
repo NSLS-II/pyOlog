@@ -10,6 +10,8 @@ Created on Jan 10, 2013
 import os
 import mimetypes
 
+from _conf import _conf
+
 class LogEntry(object):
     '''
     A LogEntry consists of some Text description, an owner and an associated logbook
@@ -30,9 +32,13 @@ class LogEntry(object):
                     attachments=[Attachment(open('databrowser.plt'))]
                     )
         '''
-        self.Text = str(text).strip();
-        self.Owner = str(owner).strip();
-        self.logbooks = logbooks
+        self.Text = str(text).strip()
+        self.Owner = str(owner).strip()
+
+        if logbooks is None and _conf.has_option('DEFAULT', 'logbooks'):
+          self.logbooks = [Logbook(n) for n in _conf.get('DEFAULT', 'logbooks').split(',')]
+        else:
+          self.logbooks = logbooks
 
         if tags is not None:
           self.tags = tags
@@ -101,8 +107,8 @@ class Logbook(object):
         Create a logbook
         >> Logbook('commissioning', 'controls')
         '''
-        self.__Name = str(name).strip();
-        self.__Owner = str(owner).strip();
+        self.__Name = str(name).strip()
+        self.__Owner = str(owner).strip()
         
     def getName(self):
         return self.__Name
