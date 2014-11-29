@@ -5,3 +5,4 @@ pyOlog.egg-info
 *.swo
 build
 dist
+doc/_*
