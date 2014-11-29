@@ -92,7 +92,7 @@ def olog():
   if args.attach is not None:
     attachments = [Attachment(open(a)) for a in args.attach.split(',')]
   else:
-    attachments = None
+    attachments = []
 
   # Grab Screenshot 
 
@@ -100,11 +100,8 @@ def olog():
     if not args.quiet and args.grab:
       print("Select area of screen to add to log entry.", 
             file = sys.stderr)
-    screenshot = Attachment(get_screenshot(args.screenshot), 'screenshot.png')
-    if attachments is None:
-      attachments = [screenshot]
-    else:
-      attachments.append(screenshot)
+    screenshot = get_screenshot(args.screenshot)
+    attachments.append(screenshot)
 
   # First create the log entry
 

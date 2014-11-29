@@ -10,6 +10,7 @@ from subprocess import call
 import getpass
 import keyring
 
+from ..utils import get_screenshot
 from ..OlogClient import OlogClient
 from ..OlogDataTypes import LogEntry, Logbook, Tag, Attachment
 
@@ -35,7 +36,19 @@ class SimpleOlogClient(object):
     """Return a list of tag names in the Olog"""
     return [l.getName() for l in self.session.listLogbooks()]
 
-  def savefig(self, **kwargs):
+  def screenshot(self, *args, **kwargs):
+    """Make a screenshot of an area and add a log entry"""
+    sha = get_screenshot()
+    if 'attachments' in kwargs:
+      if isinstance(kwargs['attachments'], list):
+        kwargs['attachments'].append(sha)
+      else:
+        kwargs['attachments'] = [kwargs['attachments'], sha]
+    else:
+      kwargs['attachments'] = [sha]
+    self.log(*args, **kwargs)
+
+  def savefig(self, *args, **kwargs):
     """Save a matplotlib figure to the logbook"""
     import matplotlib.pyplot as plt
     import StringIO
@@ -51,8 +64,10 @@ class SimpleOlogClient(object):
         kwargs['attachments'] += [a]
       else:
         kwargs['attachments'] = [kwargs['attachments'], a]
-
-    self.log(attachments = a, **kwargs)
+    else:
+      kwargs['attachments'] = [a]
+    
+    self.log(*args, **kwargs)
 
   def log(self, text = None, logbooks = None, tags = None, properties = None,
                 attachments = None, verify = True):

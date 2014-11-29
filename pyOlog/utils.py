@@ -1,4 +1,4 @@
-
+from OlogDataTypes import Attachment
 import subprocess
 
 def get_screenshot(root = False, itype = 'png'):
@@ -10,5 +10,6 @@ def get_screenshot(root = False, itype = 'png'):
   image = subprocess.Popen('import {0} {1}:-'.format(opts,itype),
                            shell = True, 
                            stdout = subprocess.PIPE)
-  return image.communicate()[0]
+  img = image.communicate()[0]
 
+  return Attachment(img, 'screenshot.' + itype)
