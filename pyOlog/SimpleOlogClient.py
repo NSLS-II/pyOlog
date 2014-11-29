@@ -10,9 +10,9 @@ from subprocess import call
 import getpass
 import keyring
 
-from ..utils import get_screenshot
-from ..OlogClient import OlogClient
-from ..OlogDataTypes import LogEntry, Logbook, Tag, Attachment
+from .utils import get_screenshot
+from .OlogClient import OlogClient
+from .OlogDataTypes import LogEntry, Logbook, Tag, Attachment
 
 class SimpleOlogClient(object):
   def __init__(self, url = None, username = None, password = None):
