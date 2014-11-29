@@ -3,14 +3,10 @@ __author__ = "swilkins"
 A simple API to the Olog client in python
 """
 
-import os
-from tempfile import NamedTemporaryFile
-from subprocess import call
-
 import getpass
 import keyring
 
-from .utils import get_screenshot
+from .utils import get_screenshot, get_text_from_editor
 from .OlogClient import OlogClient
 from .OlogDataTypes import LogEntry, Logbook, Tag, Attachment
 
@@ -105,10 +101,7 @@ class SimpleOlogClient(object):
       tags     = [Tag(n) for n in tags]
 
     if not text:
-      with NamedTemporaryFile(suffix='.tmp') as tempfile:
-        editor = os.environ.get('EDITOR', 'vim')
-        call([editor, tempfile.name])
-        text = tempfile.read()
+      text = get_text_from_editor() 
 
     toattach = []
     if attachments:
