@@ -10,7 +10,7 @@ Created on Jan 10, 2013
 import os
 import mimetypes
 
-from _conf import _conf
+from conf import _conf
 
 class LogEntry(object):
     '''
@@ -18,7 +18,9 @@ class LogEntry(object):
     It can optionally be associated with one or more logbooks and contain one or more tags, properties and attachments
     '''
 
-    def __init__(self, text, owner, logbooks, tags=None, attachments=None, properties=None, id=None, createTime=None, modifyTime=None):
+    def __init__(self, text, owner = None, logbooks = None, 
+                 tags=None, attachments=None, properties=None, id=None,
+                 createTime=None, modifyTime=None):
         '''
         Constructor for log Entry
         Simple LogEntry
@@ -28,22 +30,33 @@ class LogEntry(object):
         >> LogEntry('test log entry', 'controls', 
                     logbooks=[Logbook('commissioning', owner='controls')],
                     tags=[Tag('TimingSystem')]
-                    properties=[Property('Ticket', attributes={'Id':'1234','URL':'http://trac.nsls2.bnl.gov/trac/1234'}]
+                    properties=[Property('Ticket', 
+                    attributes={'Id':'1234','URL':'http://trac.nsls2.bnl.gov/trac/1234'}]
                     attachments=[Attachment(open('databrowser.plt'))]
                     )
         '''
         self.Text = str(text).strip()
-        self.Owner = str(owner).strip()
 
-        if logbooks is None and _conf.has_option('DEFAULT', 'logbooks'):
-          self.logbooks = [Logbook(n) for n in _conf.get('DEFAULT', 'logbooks').split(',')]
+        self.Owner = _conf.getValue('username', owner)
+        if self.Owner is None:
+          raise ValueError("You must specify an owner (hint: check config file)")
+
+        if logbooks is None:
+          logbooks = _conf.getValue('logbooks')
+          if logbooks is None:
+            raise ValueError("You must specify a logbook (hint: check config file)")
+          self.logbooks = [Logbook(n) for n in logbooks.split(',')]
         else:
           self.logbooks = logbooks
 
-        if tags is not None:
-          self.tags = tags
+        if tags is None:
+          tags = _conf.getValue('tags')
+          if tags is not None:
+            self.tags = [Tag(n) for n in tags.split(',')]
+          else:
+            self.tags = []
         else:
-          self.tags = []
+          self.tags = tags
 
         if attachments is not None:
           self.attachments = attachments
@@ -123,7 +136,7 @@ class Logbook(object):
            
 class Tag(object):
     '''
-    A Tag consists of a unique name, it is used to tag logEntries to enable querying and organizing log Entries
+    A Tag consists of a unique name, it is used to tag logEntries"""
     '''
 
     def __init__(self, name, state="Active"):

@@ -25,6 +25,8 @@ import json
 from json import JSONEncoder, JSONDecoder
 
 from urllib import urlencode
+import urllib3
+urllib3.disable_warnings()
 from urllib3.poolmanager import PoolManager
 
 from collections import OrderedDict
@@ -33,15 +35,7 @@ import tempfile
 import ssl 
 
 from OlogDataTypes import LogEntry, Logbook, Tag, Property, Attachment
-from _conf import _conf
-
-try:
-  import keyring
-except ImportError:
-  have_keyring = False
-else:
-  have_keyring = True
-
+from conf import _conf
 
 class OlogClient(object):
     '''
@@ -54,65 +48,40 @@ class OlogClient(object):
     __logbooksResource = '/resources/logbooks'
     __attachmentResource = '/resources/attachments'
 
-    def __init__(self, url=None, username=None, password=None, interactive = True):
+    def __init__(self, url=None, username=None, password=None):
         '''
         Initialize OlogClient and configure session
 
         :param url: The base URL of the Olog glassfish server.
         :param username: The username for authentication.
         :param password: The password for authentication.
-        :param interactive: If true then if no password is found, ask for it on th
-          console
         
         If :param username: is None, then the username will be read from the config
         file. If no :param username: is avaliable then the session is opened without
         authentication. 
-
-        If :param password: is None then the password will be read from the config file
-        if this is not set, then if the keyring package is avaliable it will be read 
-        from the gnome keyring. Failing that, if interactive is true, it will be asked
-        for on the command line.
         '''
 
-        self.__url = self.__getDefaultConfig('url', url)
-        self.__username = self.__getDefaultConfig('username', username)
-        self.__password = self.__getDefaultConfig('password', password)
+        self.__url      = _conf.getValue('url', url)
+        self.__username = _conf.getValue('username', username)
+        self.__password = _conf.getValue('password', password)
         
         logger.info("Using base URL %s", self.__url)
 
-        if self.__username and not self.__password:
-          # Try to get password from keyring
-          if have_keyring:
-            logger.info("Checking keyring for username %s", self.__username)
-            self.__password = keyring.get_password('olog', self.__username)
-            if self.__password:
-              logger.info("Password obtained from keyring.")
-            else:
-              logger.info("No password in keyring.")
-          else:
-            logger.info("No keyring avaliable")
-          # If this did not work (no passwd or no keyring)
-          if self.__password is None and interactive:
-            self.__password = getpass('Olog Password for {}:'.format(self.__username))
         if self.__username and self.__password:
+            # If we have a valid username and password, setup authentication
+            
             logger.info("Using username %s for authentication.", self.__username)
             self.__auth = auth.HTTPBasicAuth(self.__username, self.__password)
         else:
+
+            # Don't use authentication
             logger.info("No authentiation configured.")
             self.__auth = None
         
         self.__session = requests.Session()
         self.__session.mount('https://', Ssl3HttpAdapter())
-        self.__session.get(self.__url + self.__tagsResource, verify=False, headers=self.__jsonheader).raise_for_status()
-    
-    def __getDefaultConfig(self, arg, value):
-        '''
-        If Value is None, this will try to find the value in one of the configuration files
-        '''
-        if value == None and _conf.has_option('DEFAULT', arg):
-            return _conf.get('DEFAULT', arg)
-        else:
-            return value
+        self.__session.get(self.__url + self.__tagsResource, 
+                           verify=False, headers=self.__jsonheader).raise_for_status()
     
     def log(self, logEntry):
         '''

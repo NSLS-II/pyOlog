@@ -4,18 +4,10 @@ from __future__ import print_function
 import os, sys
 
 import argparse
-import subprocess
 
-from getpass import getpass, getuser
-
-from pyOlog import LogEntry, Logbook, Tag, Attachment, OlogClient
-
-try:
-  import keyring
-except ImportError:
-  have_keyring = False
-else:
-  have_keyring = True
+from pyOlog import Logbook, Tag, Attachment, OlogClient
+from pyOlog.api import SimpleOlogClient
+from pyOlog.utils import get_screenshot
 
 description = """\
 Command line utility for making OLog entries.
@@ -42,24 +34,6 @@ url for the Olog and also the default logbook to use.
 
 """
 
-def get_option(cfg, base, opt):
-  """Check if option base/opt is in config cfg"""
-  if cfg.has_option(base, opt):
-    return cfg.get(base, opt)
-  else:
-    return None
-
-def get_screenshot(root = False, itype = 'png'):
-  """Open ImageMagick and get screngrab as png."""
-  if root:
-    opts = '-window root'
-  else:
-    opts = ''
-  image = subprocess.Popen('import {0} {1}:-'.format(opts,itype),
-                           shell = True, 
-                           stdout = subprocess.PIPE)
-  return image.communicate()[0]
-
 def olog():
   """Command line utility for making Olog entries"""
 
@@ -73,7 +47,7 @@ def olog():
   parser.add_argument('-t', '--tags', dest = 'tags',
                     nargs = '*', help = "OLog Tag Name(s)",
                     default = None)
-  parser.add_argument('-u', '--user', dest = 'user',
+  parser.add_argument('-u', '--user', dest = 'username',
                     default = None,
                     help = "Username for Olog Access")
   parser.add_argument('-f', '--file', dest = 'text',
@@ -107,11 +81,11 @@ def olog():
   args = parser.parse_args()
 
   if args.logbooks:
-    logbooks = [Logbook(n) for n in args.logbooks]
+    logbooks = [Logbook(n) for n in args.logbooks.split(',')]
   else:
     logbooks = None
   if args.tags is not None:
-    tags     = [Tag(n) for n in args.tags]
+    tags     = [Tag(n) for n in args.tags.split(',')]
   else:
     tags = None
 
@@ -132,28 +106,13 @@ def olog():
     else:
       attachments.append(screenshot)
 
-  # Get the text for the log entry
-  if args.text is not None:
-    with args.text as file:
-      text = file.read()
-  else:
-    if not args.quiet:
-      print("Type log entry below (Enter -END- to end):",
-            file = sys.stderr)
-    sentinel = '-END-'
-    text = '\n'.join(iter(raw_input, sentinel))
-
   # First create the log entry
 
-  log_entry = LogEntry(text, args.user, logbooks,
-                      tags = tags,
-                      attachments = attachments)
-  print(log_entry)
-
-  # Now do the log entry
-
-  client = OlogClient(args.url, args.user, args.passwd)
-  client.log(log_entry)
+  c = SimpleOlogClient(args.url, args.username, args.passwd)
+  c.log(args.text,
+        logbooks = logbooks,
+        tags = tags,
+        attachments = attachments)
 
 def main():
   try:
