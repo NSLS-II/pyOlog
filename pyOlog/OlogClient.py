@@ -7,13 +7,8 @@ Created on Jan 10, 2013
 @author: shroffk
 '''
 import logging, sys
-fmt = logging.Formatter("%(asctime)-15s [%(name)5s:%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
-handler = logging.StreamHandler(sys.stdout)
-handler.setFormatter(fmt)
-logger.addHandler(handler)
 
 from getpass import getpass
 
