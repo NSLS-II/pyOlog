@@ -9,6 +9,10 @@ class OlogHandler(logging.Handler):
     self.tags = tags
   def emit(self, record):
     # ToDo add log level to olog
-    self.session.log(record.getMessage(), 
-                     logbooks = self.logbooks, 
-                     tags = self.tags)
+    try:
+      msg = self.format(record)
+      self.session.log(msg,
+                       logbooks = self.logbooks, 
+                       tags = self.tags)
+    except:
+      self.handleError(record)
