@@ -18,10 +18,17 @@ def save_pyplot_figure(**kwargs):
   import StringIO
   
   imgdata = StringIO.StringIO()
-  plt.savefig(imgdata, format = 'png', **kwargs)
+  plt.savefig(imgdata, format = 'pdf', **kwargs)
   imgdata.seek(0)
 
-  a = Attachment(imgdata, 'plot.png')
+  a = [Attachment(imgdata, 'plot.pdf')]
+
+  imgdata = StringIO.StringIO()
+  plt.savefig(imgdata, format = 'png', dpi = 50,
+              **kwargs)
+  imgdata.seek(0)
+
+  a.append(Attachment(imgdata, 'thumbnail.png'))
 
   return a
 
