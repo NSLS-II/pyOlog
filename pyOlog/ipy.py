@@ -79,6 +79,7 @@ class OlogMagics(Magics):
 
   @line_magic
   def log_add(self, line):
+    """Run the line and capture the output for the Olog"""
     with capture_output() as c:
       self.shell.run_cell(line)
     c.show()
@@ -87,16 +88,19 @@ class OlogMagics(Magics):
 
   @line_magic
   def log_end(self, line):
+    """Store the captured lines in the Olog"""
     text = get_text_from_editor(prepend = self.msg_store) 
     olog_client.log(text)
     self.msg_store = ''
 
   @line_magic
   def log_clear(self, line):
+    """Clear the store of captured lines"""
     self.msg_store = ''
 
   @line_magic
   def log_line(self, line):
+    """Run the line and add the output to the Olog"""
     with capture_output() as c:
       self.shell.run_cell(line)
     c.show()
@@ -105,6 +109,7 @@ class OlogMagics(Magics):
 
   @line_magic
   def logit(self, line):
+    """Add a log entry to the Olog"""
     if line.strip() == '':
       olog_client.log()
     else:
@@ -112,6 +117,7 @@ class OlogMagics(Magics):
 
   @line_magic
   def grabit(self, line):
+    """Grab a screenshot and add it to the Olog"""
     olog_grab()
 
 def load_ipython_extension(ipython):
