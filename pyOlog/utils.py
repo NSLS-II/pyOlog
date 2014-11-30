@@ -12,6 +12,19 @@ text_message = '''
 #
 '''
 
+def save_pyplot_figure(**kwargs):
+  """Save a matplotlib figure to an Olog Attachment Object"""
+  import matplotlib.pyplot as plt
+  import StringIO
+  
+  imgdata = StringIO.StringIO()
+  plt.savefig(imgdata, format = 'png', **kwargs)
+  imgdata.seek(0)
+
+  a = Attachment(imgdata, 'plot.png')
+
+  return a
+
 def get_screenshot(root = False, itype = 'png'):
   """Open ImageMagick and get screngrab as png."""
   if root:
