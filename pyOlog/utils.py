@@ -38,15 +38,20 @@ def get_screenshot(root = False, itype = 'png'):
 
   return Attachment(img, 'screenshot.' + itype)
 
-def get_text_from_editor(additional_text = None):
+def get_text_from_editor(prepend = None, postpend = None):
   """Open text editor and return text"""
   with tempfile.NamedTemporaryFile(suffix='.tmp') as f:
     # Write out the file and flush
-    message = text_message
-    if not additional_text: 
-      message += ''
+    if prepend:
+      message = prepend
+      message += '\n'
     else:
-      message += additional_text
+      message = ''
+
+    message += text_message
+
+    if postpend:
+      message += postpend
     f.write(message)
     f.flush()
 
