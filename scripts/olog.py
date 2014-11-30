@@ -7,7 +7,7 @@ import argparse
 
 from pyOlog import Logbook, Tag, Attachment, OlogClient
 from pyOlog.api import SimpleOlogClient
-from pyOlog.utils import get_screenshot
+from pyOlog.utils import get_screenshot, get_text_from_editor
 
 description = """\
 Command line utility for making OLog entries.
@@ -22,14 +22,20 @@ either be entered on the command line or piped in. Alternatively a
 text file can be specified with the '--file' option. 
 
 Multiple Tags and Logbooks can be specified after the option on the
-command line separated by spaces. 
+command line separated by spaces. For example:
+
+  %(prog)s -t "RF Area" "Bumps"
+
+Wil add the tags 'RF Area' and 'Bumps'
 
 Note : A password is requested on the command line unless the option
-'-p' is supplied with a valid password.
+'-p' is supplied with a valid password, the password is in the config
+file or it can be obtained from the keyring.
 
 Optionally commands will take default from a config file located
-in the users home directory ~/.olog.cfg This can contain the base
-url for the Olog and also the default logbook to use.
+in the users home directory ~/.pyOlog.conf This can contain the base
+url for the Olog and also the default logbook to use. Administrators
+can use the /etc/pyOlog.conf file to specify system wide config.
 
 
 """
@@ -80,15 +86,6 @@ def olog():
 
   args = parser.parse_args()
 
-  if args.logbooks:
-    logbooks = [Logbook(n) for n in args.logbooks.split(',')]
-  else:
-    logbooks = None
-  if args.tags is not None:
-    tags     = [Tag(n) for n in args.tags.split(',')]
-  else:
-    tags = None
-
   if args.attach is not None:
     attachments = [Attachment(open(a)) for a in args.attach.split(',')]
   else:
@@ -105,10 +102,15 @@ def olog():
 
   # First create the log entry
 
+  if args.text is None:
+    text = get_text_from_editor()
+  else:
+    text = args.text
+
   c = SimpleOlogClient(args.url, args.username, args.passwd)
-  c.log(args.text,
-        logbooks = logbooks,
-        tags = tags,
+  c.log(text,
+        logbooks = args.logbooks,
+        tags = args.tags,
         attachments = attachments)
 
 def main():
