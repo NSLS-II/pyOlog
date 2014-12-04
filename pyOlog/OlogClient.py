@@ -21,7 +21,6 @@ from json import JSONEncoder, JSONDecoder
 
 from urllib import urlencode
 import urllib3
-urllib3.disable_warnings()
 from urllib3.poolmanager import PoolManager
 
 from collections import OrderedDict

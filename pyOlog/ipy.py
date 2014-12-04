@@ -113,7 +113,7 @@ class OlogMagics(Magics):
     if line.strip() == '':
       olog_client.log()
     else:
-      olog_cleint.log(msg = line.strip())
+      olog_client.log(msg = line.strip())
 
   @line_magic
   def grabit(self, line):
@@ -123,6 +123,7 @@ class OlogMagics(Magics):
 def load_ipython_extension(ipython):
   push_vars = {'olog'         : olog,
                'olog_savefig' : olog_savefig,
-               'olog_grab'    : olog_grab}
+               'olog_grab'    : olog_grab,
+               'olog_client'  : olog_client}
   ipython.push(push_vars) 
   ipython.register_magics(OlogMagics)
