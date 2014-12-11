@@ -113,7 +113,7 @@ class OlogMagics(Magics):
     if line.strip() == '':
       olog_client.log()
     else:
-      olog_client.log(msg = line.strip())
+      olog_client.log(line.strip())
 
   @line_magic
   def grabit(self, line):
