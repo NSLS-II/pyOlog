@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from IPython.core.magic import Magics, magics_class, line_magic, cell_magic 
+from IPython.core.magic import Magics, magics_class, line_magic, cell_magic
 
 from IPython.utils.io import capture_output
 from IPython.display import display
@@ -10,18 +10,18 @@ from pyOlog.utils import save_pyplot_figure, get_screenshot, get_text_from_edito
 
 olog_client = SimpleOlogClient()
 
-def olog(msg = None, logbooks = None, tags = None, 
+def olog(msg = None, logbooks = None, tags = None,
          attachments = None, **kwargs):
   """Make a log entry to the Olog
 
-  :param msg: Message for log entry. 
+  :param msg: Message for log entry.
               If None use and editor to get message.
   :param logbooks: Logbooks to add message to.
   :type logbooks: String or List of Strings.
   :param tags: Tags to tag the log entry with.
   :type tags: String or List of Strings.
   :param attachments: List of attachments to add to log entry.
-  :type attachments: Attchment objects 
+  :type attachments: Attchment objects
   """
   if not msg:
     msg = get_text_from_editor()
@@ -31,12 +31,12 @@ def olog(msg = None, logbooks = None, tags = None,
 
 def olog_savefig(**kwargs):
   """Save a pyplot figure and place it in tho Olog
-  
+
   The **kwargs are all passed onto the :func savefig: function
   and then onto the :func olog" function
-  
+
   :returns: None
-  """ 
+  """
   fig = save_pyplot_figure(**kwargs)
   if 'attachments' in kwargs:
     if isinstance(kwargs['attachments'], list):
@@ -47,18 +47,18 @@ def olog_savefig(**kwargs):
     kwargs['attachments'] = fig
 
   olog(**kwargs)
-  return 
+  return
 
 def olog_grab(root = False, **kwargs):
   """Grab a screenshot and place it in tho Olog
-  
+
   :param root" If True, the entire screen is grabbed else select
                an area as a rubber band.
 
   The **kwargs are all passed onto the :func olog: function
-  
+
   :returns: None
-  """ 
+  """
   if not root:
     print("Select area of screen to grab .........")
   a = get_screenshot(root)
@@ -71,7 +71,7 @@ def olog_grab(root = False, **kwargs):
     kwargs['attachments'] = a
 
   olog(**kwargs)
-  return 
+  return
 
 @magics_class
 class OlogMagics(Magics):
@@ -80,6 +80,8 @@ class OlogMagics(Magics):
   @line_magic
   def log_add(self, line):
     """Run the line and capture the output for the Olog"""
+    self.msg_store += ">>>{}\n".format(line)
+    self.msg_store += "\n"
     with capture_output() as c:
       self.shell.run_cell(line)
     c.show()
@@ -89,8 +91,8 @@ class OlogMagics(Magics):
   @line_magic
   def log_end(self, line):
     """Store the captured lines in the Olog"""
-    text = get_text_from_editor(prepend = self.msg_store) 
-    olog_client.log(text)
+    #text = get_text_from_editor(prepend = self.msg_store)
+    olog_client.log(self.msg_store)
     self.msg_store = ''
 
   @line_magic
@@ -101,10 +103,12 @@ class OlogMagics(Magics):
   @line_magic
   def log_line(self, line):
     """Run the line and add the output to the Olog"""
+    msg = ">>>{}\n".format(line)
+    msg += "\n"
     with capture_output() as c:
       self.shell.run_cell(line)
     c.show()
-    msg = c.stdout
+    msg += c.stdout
     olog_client.log(msg)
 
   @line_magic
@@ -125,5 +129,5 @@ def load_ipython_extension(ipython):
                'olog_savefig' : olog_savefig,
                'olog_grab'    : olog_grab,
                'olog_client'  : olog_client}
-  ipython.push(push_vars) 
+  ipython.push(push_vars)
   ipython.register_magics(OlogMagics)
