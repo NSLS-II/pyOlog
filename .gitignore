@@ -6,3 +6,4 @@ pyOlog.egg-info
 build
 dist
 doc/_*
+.ropeproject
