@@ -91,8 +91,8 @@ class OlogMagics(Magics):
   @line_magic
   def log_end(self, line):
     """Store the captured lines in the Olog"""
-    #text = get_text_from_editor(prepend = self.msg_store)
-    olog_client.log(self.msg_store)
+    text = get_text_from_editor(prepend = self.msg_store)
+    olog_client.log(text)
     self.msg_store = ''
 
   @line_magic
