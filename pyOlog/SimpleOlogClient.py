@@ -6,24 +6,37 @@ A simple API to the Olog client in python
 import getpass
 import keyring
 
-from .utils import get_screenshot, get_text_from_editor
+from .utils import get_text_from_editor
 from .OlogClient import OlogClient
 from .OlogDataTypes import LogEntry, Logbook, Tag, Attachment
+
+from .conf import _conf
 
 class SimpleOlogClient(object):
   def __init__(self, url = None, username = None, password = None):
     """Initiate a session and do password caching using keyring"""
+
+    # First check config file for defaults
+
+
     if username is None:
-      username = getpass.getuser()
+      if _conf.getValue('username'):
+        username = _conf.getValue('username')
+      else:
+        username = getpass.getuser()
+
     if password is None:
-      password = keyring.get_password('olog', username)
-    if password is None:
-      password = getpass.getpass("Olog Password (username = {}) :".format(username))
+      if _conf.getValue('password'):
+        password = _conf.getValue('password')
+      if password is None:
+        password = keyring.get_password('olog', username)
+      if password is None:
+        password = getpass.getpass("Olog Password (username = {}) :".format(username))
 
     if username and not password:
       raise Exception("Unable to obtain password and authentication requested.")
     self.session = OlogClient(username = username, password = password)
-    
+
   def getTags(self):
     """Return a list of tag names in the Olog"""
     return [t.getName() for t in self.session.listTags()]
@@ -68,7 +81,7 @@ class SimpleOlogClient(object):
       tags     = [Tag(n) for n in tags]
 
     if not text:
-      text = get_text_from_editor() 
+      text = get_text_from_editor()
 
     toattach = []
     if attachments:

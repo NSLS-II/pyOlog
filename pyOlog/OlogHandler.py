@@ -12,7 +12,7 @@ class OlogHandler(logging.Handler):
     try:
       msg = self.format(record)
       self.session.log(msg,
-                       logbooks = self.logbooks, 
+                       logbooks = self.logbooks,
                        tags = self.tags)
     except:
       self.handleError(record)

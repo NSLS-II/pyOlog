@@ -6,7 +6,7 @@ import os, sys
 import argparse
 
 from pyOlog import Logbook, Tag, Attachment, OlogClient
-from pyOlog.api import SimpleOlogClient
+from pyOlog import SimpleOlogClient
 from pyOlog.utils import get_screenshot, get_text_from_editor
 
 description = """\
@@ -18,8 +18,8 @@ Example:
 This makes a log entry into the 'Operations' log tagged with the
 tag 'Data' from the account of 'swilkins' with an image 'image.png
 attached to the log entry. The log text is taken from stdin and can
-either be entered on the command line or piped in. Alternatively a 
-text file can be specified with the '--file' option. 
+either be entered on the command line or piped in. Alternatively a
+text file can be specified with the '--file' option.
 
 Multiple Tags and Logbooks can be specified after the option on the
 command line separated by spaces. For example:
@@ -71,7 +71,7 @@ def olog():
                     default = None)
   group = parser.add_mutually_exclusive_group()
   group.add_argument('-s','--screenshot', dest = 'screenshot',
-                    help = 'Take screenshot of whole screen', 
+                    help = 'Take screenshot of whole screen',
                     default = False,
                     action = 'store_true')
   group.add_argument('-g', '--grap', dest = 'grab',
@@ -91,11 +91,11 @@ def olog():
   else:
     attachments = []
 
-  # Grab Screenshot 
+  # Grab Screenshot
 
   if args.screenshot or args.grab:
     if not args.quiet and args.grab:
-      print("Select area of screen to add to log entry.", 
+      print("Select area of screen to add to log entry.",
             file = sys.stderr)
     screenshot = get_screenshot(args.screenshot)
     attachments.append(screenshot)
