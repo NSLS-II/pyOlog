@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class Config(object):
   defaults   = {'url'      : 'http://localhost:8181/Olog',
-                'username' : os.getlogin()}
+                'username' : os.environ['USER']}
   conf_files = ['/etc/pyOlog.conf',
                 os.path.expanduser('~/pyOlog.conf'),
                 os.path.expanduser('~/.pyOlog.conf'),
@@ -30,7 +30,7 @@ class Config(object):
     import ConfigParser
     self.cf = ConfigParser.SafeConfigParser(defaults=self.defaults)
     files = self.cf.read(self.conf_files)
-    for f in files: 
+    for f in files:
         logger.info("Read config file %s", f)
 
   def getValue(self, arg, value = None):
@@ -41,9 +41,9 @@ class Config(object):
     :param value: Value to check for.
 
     This method will return the default value from the config. If
-    :param value: is not None then this will always return :param value:. 
+    :param value: is not None then this will always return :param value:.
     If :param value: is None then the config is searched for an entry
-    :param arg:. If no config is avaliable then None is returned. 
+    :param arg:. If no config is avaliable then None is returned.
 
     :returns: Config value or None.
     '''
@@ -54,5 +54,5 @@ class Config(object):
         return None
     else:
       return value
-   
+
 _conf = Config()
