@@ -23,6 +23,12 @@ from getpass import getpass
 
 import requests
 
+#
+# Disable warning for non verified HTTPS requests
+#
+from requests.packages import urllib3
+urllib3.disable_warnings()
+
 from json import JSONEncoder, JSONDecoder
 from urllib import urlencode
 from collections import OrderedDict
@@ -92,11 +98,12 @@ class OlogClient(object):
             self._auth = None
 
         self._session = requests.Session()
-        self._get("{0}{1}".format(self._url, self.tags_resource))
+        self._session.auth = self._auth
 
     def _get(self, url, **kwargs):
         """Do an http GET request"""
         resp = self._session.get(url, verify=self.verify,
+                                 auth=self._auth,
                                  headers=self.json_header,
                                  **kwargs)
         resp.raise_for_status()
