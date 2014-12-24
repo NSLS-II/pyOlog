@@ -99,38 +99,30 @@ class OlogClient(object):
 
         self._session = requests.Session()
         self._session.auth = self._auth
+        self._session.headers.update(self.json_header)
+        self._session.verify = self.verify
 
     def _get(self, url, **kwargs):
         """Do an http GET request"""
-        resp = self._session.get(url, verify=self.verify,
-                                 auth=self._auth,
-                                 headers=self.json_header,
-                                 **kwargs)
+        resp = self._session.get(self._url + url, **kwargs)
         resp.raise_for_status()
         return resp
 
     def _put(self, url, **kwargs):
         """Do an http put request"""
-        resp = self._session.put(url, verify=self.verify,
-                                 headers=self.json_header,
-                                 auth=self._auth,
-                                 **kwargs)
+        resp = self._session.put(self._url + url, **kwargs)
         resp.raise_for_status()
         return resp
 
     def _post(self, url, **kwargs):
         """Do an http post request"""
-        resp = self._session.post(url, verify=self.verify,
-                                  headers=self.json_header,
-                                  auth=self._auth, **kwargs)
+        resp = self._session.post(self._url + url, **kwargs)
         resp.raise_for_status()
         return resp
 
     def _delete(self, url, **kwargs):
         """Do an http delete request"""
-        resp = self._session.delete(url, verify=self.verify,
-                                    headers=self.json_header,
-                                    auth=self._auth, **kwargs)
+        resp = self._session.delete(self._url + url, **kwargs)
         resp.raise_for_status()
         return resp
 
@@ -141,15 +133,14 @@ class OlogClient(object):
         :param log_entry: An instance of LogEntry to add to the Olog
 
         '''
-        resp = self._post(self._url + self.logs_resource,
+        resp = self._post(self.logs_resource,
                           data=LogEntryEncoder().encode(log_entry))
         id = LogEntryDecoder().dictToLogEntry(resp.json()[0]).getId()
 
         # Handle attachments
 
         for attachment in log_entry.getAttachments():
-            url = "{0}{1}/{2}".format(self._url, self.attachments_resource,
-                                      str(id))
+            url = "/".join((self.attachments_resource, str(id)))
             resp = self._post(url, files={'file': attachment.getFilePost()})
 
     def createLogbook(self, logbook):
@@ -158,8 +149,7 @@ class OlogClient(object):
 
         :param logbook: An instance of Logbook to create in the Olog.
         '''
-        url = "{0}{1}/{2}".format(self._url, self.logbooks_resource,
-                                  logbook.getName())
+        url = "/".join((self.logbooks_resource, logbook.getName()))
         self._put(url, data=LogbookEncoder().encode(logbook))
 
     def createTag(self, tag):
@@ -168,8 +158,7 @@ class OlogClient(object):
 
         :param tag: An instance of Tag to create in the Olog.
         '''
-        url = "{0}{1}/{2}".format(self._url, self.tags_resource,
-                                  tag.getName())
+        url = "/".join((self.tags_resource, tag.getName()))
         self._put(url, data=TagEncoder().encode(tag))
 
     def createProperty(self, property):
@@ -178,10 +167,9 @@ class OlogClient(object):
 
         :param property: An instance of Property to create in the Olog.
         '''
-        url = "{0}{1}/{2}".format(self._url, self.properties_resource,
-                                  property.getName())
-        # p = PropertyEncoder().encode(property)
-        self._put(url, data=PropertyEncoder().encode(property))
+        url = "/".join((self.properties_resource, property.getName()))
+        p = PropertyEncoder().encode(property)
+        self._put(url, data=p)
 
     def find(self, **kwds):
         '''
@@ -210,9 +198,8 @@ class OlogClient(object):
         named 'magnets'
         '''
         # search = '*' + text + '*'
-        query_string = "{0}{1}?{2}".format(self._url,
-                                           self.logs_resource,
-                                           urlencode(OrderedDict(kwds)))
+        query_string = "?".join((self.logs_resource,
+                                 urlencode(OrderedDict(kwds))))
         resp = self._get(query_string)
 
         logs = []
@@ -227,27 +214,27 @@ class OlogClient(object):
 
         :param logEntryId: The ID of the log entry to list the attachments.
         '''
-        url = "{0}{1}/{2}".format(self._url, self.attachments_resource,
-                                  str(logEntryId))
+        url = "/".join((self.attachments_resource, str(logEntryId)))
         resp = self._get(url)
 
         attachments = []
         for jsonAttachment in resp.json().pop('attachment'):
-            fileName = jsonAttachment.pop('fileName')
-            url = "{0}{1}/{2}/{3}".format(self._url, self.attachments_resource,
-                                          str(logEntryId), fileName)
+            filename = jsonAttachment.pop('filename')
+            url = "/".join((self.attachments_resource, str(logEntryId),
+                           filename))
             f = self._get(url)
             testFile = tempfile.NamedTemporaryFile(delete=False)
-            testFile.name = fileName
+            testFile.name = filename
             testFile.write(f.content)
             attachments.append(Attachment(file=testFile))
+
         return attachments
 
     def listTags(self):
         '''
         List all tags in the Olog.
         '''
-        resp = self._get(self._url + self.tags_resource)
+        resp = self._get(self.tags_resource)
 
         tags = []
         for jsonTag in resp.json().pop('tag'):
@@ -258,7 +245,7 @@ class OlogClient(object):
         '''
         List all logbooks in the Olog.
         '''
-        resp = self._get(self._url + self.logbooks_resource)
+        resp = self._get(self.logbooks_resource)
 
         logbooks = []
         for jsonLogbook in resp.json().pop('logbook'):
@@ -269,7 +256,7 @@ class OlogClient(object):
         '''
         List all Properties and their attributes in the Olog.
         '''
-        resp = self._get(self._url + self.properties_resource)
+        resp = self._get(self.properties_resource)
 
         properties = []
         for jsonProperty in resp.json().pop('property'):
@@ -310,25 +297,25 @@ class OlogClient(object):
 
     def __handleSingleDeleteParameter(self, **kwds):
         if 'logbookName' in kwds:
-            url = "{0}{1}/{2}".format(self._url, self.logbooks_resource,
-                                      kwds['logbookName'].strip())
+            url = "/".join((self.logbooks_resource,
+                           kwds['logbookName'].strip()))
             self._delete(url)
 
         elif 'tagName' in kwds:
-            url = "{0}{1}/{2}".format(self._url, self.logbooks_resource,
-                                      kwds['tagName'].strip())
+            url = "/".join((self.logbooks_resource,
+                           kwds['tagName'].strip()))
             self._delete(url)
 
         elif 'propertyName' in kwds:
-            url = "{0}{1}/{2}".format(self._url, self.logbooks_resource,
-                                      kwds['propertyName'].strip())
+            url = "/".join((self.logbooks_resource,
+                           kwds['propertyName'].strip()))
             data = PropertyEncoder().encode(Property(
                 kwds['propertyName'].strip()))
             self._delete(url, data=data)
 
         elif 'logEntryId' in kwds:
-            url = "{0}{1}/{2}".format(self._url, self.logbooks_resource,
-                                      kwds['logEntryId'].strip())
+            url = "/".join((self.logbooks_resource,
+                           kwds['logEntryId'].strip()))
             self._delete(url)
 
         else:
