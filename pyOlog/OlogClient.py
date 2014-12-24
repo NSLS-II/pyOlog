@@ -21,13 +21,18 @@ else:
 
 from getpass import getpass
 
+import ssl
 import requests
+
+from requests.packages import urllib3
+from requests.adapters import HTTPAdapter
 
 #
 # Disable warning for non verified HTTPS requests
 #
-from requests.packages import urllib3
 urllib3.disable_warnings()
+
+from requests.packages.urllib3.poolmanager import PoolManager
 
 from json import JSONEncoder, JSONDecoder
 from urllib import urlencode
@@ -98,31 +103,40 @@ class OlogClient(object):
             self._auth = None
 
         self._session = requests.Session()
-        self._session.auth = self._auth
+        self._session.mount('https://', ssl3_http_adapter())
+        # self._session.auth = _auth
         self._session.headers.update(self.json_header)
         self._session.verify = self.verify
 
     def _get(self, url, **kwargs):
         """Do an http GET request"""
-        resp = self._session.get(self._url + url, **kwargs)
+        print self._url + url
+        resp = self._session.get(self._url + url, auth=self._auth,
+                                 **kwargs)
         resp.raise_for_status()
         return resp
 
     def _put(self, url, **kwargs):
         """Do an http put request"""
-        resp = self._session.put(self._url + url, **kwargs)
+        print self._url + url
+        resp = self._session.put(self._url + url, auth=self._auth,
+                                 **kwargs)
         resp.raise_for_status()
         return resp
 
     def _post(self, url, **kwargs):
         """Do an http post request"""
-        resp = self._session.post(self._url + url, **kwargs)
+        print self._url + url
+        resp = self._session.post(self._url + url, auth=self._auth,
+                                  **kwargs)
         resp.raise_for_status()
         return resp
 
     def _delete(self, url, **kwargs):
         """Do an http delete request"""
-        resp = self._session.delete(self._url + url, **kwargs)
+        print self._url + url
+        resp = self._session.delete(self._url + url, auth=self._auth,
+                                    **kwargs)
         resp.raise_for_status()
         return resp
 
@@ -431,13 +445,11 @@ class LogEntryDecoder(JSONDecoder):
             return None
 
 
-# class Ssl3HttpAdapter(HTTPAdapter):
-#     """"Transport adapter" that allows us to use SSLv3."""
-#
-#     def init_poolmanager(self, connections, maxsize, block=False):
-#         self.poolmanager = PoolManager(num_pools=connections,
-#                                        maxsize=maxsize,
-#                                        block=block,
-#                                        # ssl_version=ssl.PROTOCOL_SSLv3,
-#                                        cert_reqs='CERT_REQUIRED',
-#                                        ca_certs=certifi.where())
+class ssl3_http_adapter(HTTPAdapter):
+    """"Transport adapter" that allows us to use SSLv3."""
+
+    def init_poolmanager(self, connections, maxsize, block=False):
+        self.poolmanager = PoolManager(num_pools=connections,
+                                       maxsize=maxsize,
+                                       block=block,
+                                       ssl_version=ssl.PROTOCOL_SSLv3)
