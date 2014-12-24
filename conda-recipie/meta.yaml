@@ -1,6 +1,6 @@
 
 package:
-    name: pyOlog
+    name: pyolog
     version: "0.2.0"
 
 source:
@@ -13,10 +13,12 @@ requirements:
     build:
         - python
         - setuptools
-        - requests
-        - urllib3
     run:
         - python
+        - setuptools
+        - requests
+        - keyring
+        - urllib3
 
 test:
     imports:
