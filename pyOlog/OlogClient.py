@@ -7,35 +7,27 @@ Created on Jan 10, 2013
 @author: shroffk
 '''
 import logging
-import string
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 KEYRING_NAME = 'olog'
 try:
-    import keyring
+    from keyring import get_password
 except ImportError:
     have_keyring = False
+    logger.warning("No keyring module found")
 else:
     have_keyring = True
 
 from getpass import getpass
 
 import requests
-from requests.adapters import HTTPAdapter
-from requests import auth
 
-import json
 from json import JSONEncoder, JSONDecoder
-
 from urllib import urlencode
-from urllib3.poolmanager import PoolManager
-
 from collections import OrderedDict
 
 import tempfile
-import ssl
 
 from OlogDataTypes import LogEntry, Logbook, Tag, Property, Attachment
 from conf import _conf
@@ -45,13 +37,13 @@ class OlogClient(object):
     '''
     classdocs
     '''
-    __jsonheader = {'content-type': 'application/json',
-                    'accept': 'application/json'}
-    __logsResource = '/resources/logs'
-    __propertiesResource = '/resources/properties'
-    __tagsResource = '/resources/tags'
-    __logbooksResource = '/resources/logbooks'
-    __attachmentResource = '/resources/attachments'
+    json_header = {'content-type': 'application/json',
+                   'accept': 'application/json'}
+    logs_resource = '/resources/logs'
+    properties_resource = '/resources/properties'
+    tags_resource = '/resources/tags'
+    logbooks_resource = '/resources/logbooks'
+    attachments_resource = '/resources/attachments'
 
     def __init__(self, url=None, username=None, password=None, ask=True):
         '''
@@ -69,62 +61,89 @@ class OlogClient(object):
         the keyring module and askpass to get a password.
 
         '''
-        self.__url = _conf.getValue('url', url)
+        self._url = _conf.getValue('url', url)
+        self.verify = False
         username = _conf.getValue('username', username)
         password = _conf.getValue('password', password)
 
         if username and not password and ask:
             # try methods for a password
             if have_keyring:
-                password = keyring.get_password(KEYRING_NAME, username)
+                password = get_password(KEYRING_NAME, username)
 
             # If it is not in the keyring, or we don't have that module
             if not password:
-                password = getpass.getpass("Olog Password (username = {}):"
-                                           .format(username))
+                logger.info("Password not found in keyring")
+                password = getpass("Olog Password (username = {}):"
+                                   .format(username))
 
-        logger.info("Using base URL %s", self.__url)
+        logger.info("Using base URL %s", self._url)
 
         if username and password:
             # If we have a valid username and password, setup authentication
 
             logger.info("Using username %s for authentication.",
                         username)
-            self.__auth = auth.HTTPBasicAuth(username, password)
+            self._auth = requests.auth.HTTPBasicAuth(username, password)
         else:
 
             # Don't use authentication
             logger.info("No authentiation configured.")
-            self.__auth = None
+            self._auth = None
 
-        self.__session = requests.Session()
-        self.__session.mount('https://', Ssl3HttpAdapter())
-        self.__session.get(self.__url + self.__tagsResource,
-                           verify=False,
-                           headers=self.__jsonheader).raise_for_status()
+        self._session = requests.Session()
+        self._get("{0}{1}".format(self._url, self.tags_resource))
 
-    def log(self, logEntry):
+    def _get(self, url, **kwargs):
+        """Do an http GET request"""
+        resp = self._session.get(url, verify=self.verify,
+                                 headers=self.json_header,
+                                 **kwargs)
+        resp.raise_for_status()
+        return resp
+
+    def _put(self, url, **kwargs):
+        """Do an http put request"""
+        resp = self._session.put(url, verify=self.verify,
+                                 headers=self.json_header,
+                                 auth=self._auth,
+                                 **kwargs)
+        resp.raise_for_status()
+        return resp
+
+    def _post(self, url, **kwargs):
+        """Do an http post request"""
+        resp = self._session.post(url, verify=self.verify,
+                                  headers=self.json_header,
+                                  auth=self._auth, **kwargs)
+        resp.raise_for_status()
+        return resp
+
+    def _delete(self, url, **kwargs):
+        """Do an http delete request"""
+        resp = self._session.delete(url, verify=self.verify,
+                                    headers=self.json_header,
+                                    auth=self._auth, **kwargs)
+        resp.raise_for_status()
+        return resp
+
+    def log(self, log_entry):
         '''
         Create a log entry
 
-        :param logEntry: An instance of LogEntry to add to the Olog
+        :param log_entry: An instance of LogEntry to add to the Olog
 
         '''
-        logEntry = ''.join(c for c in logEntry if c in string.printable)
-        resp = self.__session.post(self.__url + self.__logsResource,
-                                   data=LogEntryEncoder().encode(logEntry),
-                                   verify=False,
-                                   headers=self.__jsonheader,
-                                   auth=self.__auth)
-        resp.raise_for_status()
+        resp = self._post(self._url + self.logs_resource,
+                          data=LogEntryEncoder().encode(log_entry))
         id = LogEntryDecoder().dictToLogEntry(resp.json()[0]).getId()
-        '''Attachments'''
-        for attachment in logEntry.getAttachments():
-            url = "{0}{1}/{2}".format(self.__url, self.__attachmentResource,
+
+        # Handle attachments
+
+        for attachment in log_entry.getAttachments():
+            url = "{0}{1}/{2}".format(self._url, self.attachments_resource,
                                       str(id))
-            resp = self.__session.post(url, verify=False, auth=self.__auth,
-                                       files={'file': attachment.getFilePost()})
-            resp.raise_for_status()
+            resp = self._post(url, files={'file': attachment.getFilePost()})
 
     def createLogbook(self, logbook):
         '''
@@ -132,12 +151,9 @@ class OlogClient(object):
 
         :param logbook: An instance of Logbook to create in the Olog.
         '''
-        url = "{0}{1}/{2}".format(self.__url, self.__logbooksResource,
+        url = "{0}{1}/{2}".format(self._url, self.logbooks_resource,
                                   logbook.getName())
-        self.__session.put(url, data=LogbookEncoder().encode(logbook),
-                           verify=False,
-                           headers=self.__jsonheader,
-                           auth=self.__auth).raise_for_status()
+        self._put(url, data=LogbookEncoder().encode(logbook))
 
     def createTag(self, tag):
         '''
@@ -145,12 +161,9 @@ class OlogClient(object):
 
         :param tag: An instance of Tag to create in the Olog.
         '''
-        url = "{0}{1}/{2}".format(self.__url, self.__tagsResource,
+        url = "{0}{1}/{2}".format(self._url, self.tags_resource,
                                   tag.getName())
-        self.__session.put(url, data=TagEncoder().encode(tag),
-                           verify=False,
-                           headers=self.__jsonheader,
-                           auth=self.__auth).raise_for_status()
+        self._put(url, data=TagEncoder().encode(tag))
 
     def createProperty(self, property):
         '''
@@ -158,13 +171,10 @@ class OlogClient(object):
 
         :param property: An instance of Property to create in the Olog.
         '''
-        url = "{0}{1}/{2}".format(self.__url, self.__propertiesResource,
+        url = "{0}{1}/{2}".format(self._url, self.properties_resource,
                                   property.getName())
         # p = PropertyEncoder().encode(property)
-        self.__session.put(url, data=PropertyEncoder().encode(property),
-                           verify=False,
-                           headers=self.__jsonheader,
-                           auth=self.__auth).raise_for_status()
+        self._put(url, data=PropertyEncoder().encode(property))
 
     def find(self, **kwds):
         '''
@@ -193,18 +203,15 @@ class OlogClient(object):
         named 'magnets'
         '''
         # search = '*' + text + '*'
-        query_string = "{0}{1}?{2}".format(self.__url,
-                                           self.__logsResource,
+        query_string = "{0}{1}?{2}".format(self._url,
+                                           self.logs_resource,
                                            urlencode(OrderedDict(kwds)))
-        resp = self.__session.get(query_string,
-                                  verify=False,
-                                  headers=self.__jsonheader,
-                                  auth=self.__auth
-                                  )
-        resp.raise_for_status()
+        resp = self._get(query_string)
+
         logs = []
         for jsonLogEntry in resp.json():
             logs.append(LogEntryDecoder().dictToLogEntry(jsonLogEntry))
+
         return logs
 
     def listAttachments(self, logEntryId):
@@ -213,17 +220,16 @@ class OlogClient(object):
 
         :param logEntryId: The ID of the log entry to list the attachments.
         '''
-        url = "{0}{1}/{2}".format(self.__url, self.__attachmentResource,
+        url = "{0}{1}/{2}".format(self._url, self.attachments_resource,
                                   str(logEntryId))
-        resp = self.__session.get(url, verify=False,
-                                  headers=self.__jsonheader)
-        resp.raise_for_status()
+        resp = self._get(url)
+
         attachments = []
         for jsonAttachment in resp.json().pop('attachment'):
             fileName = jsonAttachment.pop('fileName')
-            url = "{0}{1}/{2}/{3}".format(self.__url, self.__attachmentResource,
+            url = "{0}{1}/{2}/{3}".format(self._url, self.attachments_resource,
                                           str(logEntryId), fileName)
-            f = self.__session.get(url, verify=False)
+            f = self._get(url)
             testFile = tempfile.NamedTemporaryFile(delete=False)
             testFile.name = fileName
             testFile.write(f.content)
@@ -234,11 +240,8 @@ class OlogClient(object):
         '''
         List all tags in the Olog.
         '''
-        resp = self.__session.get(self.__url + self.__tagsResource,
-                                  verify=False,
-                                  headers=self.__jsonheader,
-                                  auth=self.__auth)
-        resp.raise_for_status()
+        resp = self._get(self._url + self.tags_resource)
+
         tags = []
         for jsonTag in resp.json().pop('tag'):
             tags.append(TagDecoder().dictToTag(jsonTag))
@@ -248,11 +251,8 @@ class OlogClient(object):
         '''
         List all logbooks in the Olog.
         '''
-        resp = self.__session.get(self.__url + self.__logbooksResource,
-                                  verify=False,
-                                  headers=self.__jsonheader,
-                                  auth=self.__auth)
-        resp.raise_for_status()
+        resp = self._get(self._url + self.logbooks_resource)
+
         logbooks = []
         for jsonLogbook in resp.json().pop('logbook'):
             logbooks.append(LogbookDecoder().dictToLogbook(jsonLogbook))
@@ -262,11 +262,8 @@ class OlogClient(object):
         '''
         List all Properties and their attributes in the Olog.
         '''
-        resp = self.__session.get(self.__url + self.__propertiesResource,
-                                  verify=False,
-                                  headers=self.__jsonheader,
-                                  auth=self.__auth)
-        resp.raise_for_status()
+        resp = self._get(self._url + self.properties_resource)
+
         properties = []
         for jsonProperty in resp.json().pop('property'):
             properties.append(PropertyDecoder().dictToProperty(jsonProperty))
@@ -306,35 +303,27 @@ class OlogClient(object):
 
     def __handleSingleDeleteParameter(self, **kwds):
         if 'logbookName' in kwds:
-            url = "{0}{1}/{2}".format(self.__url, self.__logbooksResource,
+            url = "{0}{1}/{2}".format(self._url, self.logbooks_resource,
                                       kwds['logbookName'].strip())
-            self.__session.delete(url, verify=False,
-                                  headers=self.__jsonheader,
-                                  auth=self.__auth).raise_for_status()
-            pass
+            self._delete(url)
+
         elif 'tagName' in kwds:
-            url = "{0}{1}/{2}".format(self.__url, self.__logbooksResource,
+            url = "{0}{1}/{2}".format(self._url, self.logbooks_resource,
                                       kwds['tagName'].strip())
-            self.__session.delete(url, verify=False,
-                                  headers=self.__jsonheader,
-                                  auth=self.__auth).raise_for_status()
-            pass
+            self._delete(url)
+
         elif 'propertyName' in kwds:
-            url = "{0}{1}/{2}".format(self.__url, self.__logbooksResource,
+            url = "{0}{1}/{2}".format(self._url, self.logbooks_resource,
                                       kwds['propertyName'].strip())
             data = PropertyEncoder().encode(Property(
                 kwds['propertyName'].strip()))
-            self.__session.delete(url, data=data, verify=False,
-                                  headers=self.__jsonheader,
-                                  auth=self.__auth).raise_for_status()
-            pass
+            self._delete(url, data=data)
+
         elif 'logEntryId' in kwds:
-            url = "{0}{1}/{2}".format(self.__url, self.__logbooksResource,
+            url = "{0}{1}/{2}".format(self._url, self.logbooks_resource,
                                       kwds['logEntryId'].strip())
-            self.__session.delete(url, verify=False,
-                                  headers=self.__jsonheader,
-                                  auth=self.__auth).raise_for_status()
-            pass
+            self._delete(url)
+
         else:
             raise ValueError('Unknown Key')
 
@@ -350,13 +339,13 @@ class PropertyEncoder(JSONEncoder):
             prop["name"] = obj.getName()
             prop["attributes"] = test
             return prop
-        return json.JSONEncoder.default(self, obj)
+        return JSONEncoder.default(self, obj)
 
 
 class PropertyDecoder(JSONDecoder):
 
     def __init__(self):
-        json.JSONDecoder.__init__(self, object_hook=self.dictToProperty)
+        JSONDecoder.__init__(self, object_hook=self.dictToProperty)
 
     def dictToProperty(self, d):
         if d:
@@ -368,13 +357,13 @@ class LogbookEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Logbook):
             return {"name": obj.getName(), "owner": obj.getOwner()}
-        return json.JSONEncoder.default(self, obj)
+        return JSONEncoder.default(self, obj)
 
 
 class LogbookDecoder(JSONDecoder):
 
     def __init__(self):
-        json.JSONDecoder.__init__(self, object_hook=self.dictToLogbook)
+        JSONDecoder.__init__(self, object_hook=self.dictToLogbook)
 
     def dictToLogbook(self, d):
         if d:
@@ -388,13 +377,13 @@ class TagEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Tag):
             return {"state": obj.getState(), "name": obj.getName()}
-        return json.JSONEncoder.default(self, obj)
+        return JSONEncoder.default(self, obj)
 
 
 class TagDecoder(JSONDecoder):
 
     def __init__(self):
-        json.JSONDecoder.__init__(self, object_hook=self.dictToTag)
+        JSONDecoder.__init__(self, object_hook=self.dictToTag)
 
     def dictToTag(self, d):
         if d:
@@ -420,13 +409,13 @@ class LogEntryEncoder(JSONEncoder):
                      "owner": obj.getOwner(), "level": "Info",
                      "logbooks": logbooks, "tags": tags,
                      "properties": properties}]
-        return json.JSONEncoder.default(self, obj)
+        return JSONEncoder.default(self, obj)
 
 
 class LogEntryDecoder(JSONDecoder):
 
     def __init__(self):
-        json.JSONDecoder.__init__(self, object_hook=self.dictToLogEntry)
+        JSONDecoder.__init__(self, object_hook=self.dictToLogEntry)
 
     def dictToLogEntry(self, d):
         if d:
@@ -448,11 +437,13 @@ class LogEntryDecoder(JSONDecoder):
             return None
 
 
-class Ssl3HttpAdapter(HTTPAdapter):
-    """"Transport adapter" that allows us to use SSLv3."""
-
-    def init_poolmanager(self, connections, maxsize, block=False):
-        self.poolmanager = PoolManager(num_pools=connections,
-                                       maxsize=maxsize,
-                                       block=block,
-                                       ssl_version=ssl.PROTOCOL_SSLv3)
+# class Ssl3HttpAdapter(HTTPAdapter):
+#     """"Transport adapter" that allows us to use SSLv3."""
+#
+#     def init_poolmanager(self, connections, maxsize, block=False):
+#         self.poolmanager = PoolManager(num_pools=connections,
+#                                        maxsize=maxsize,
+#                                        block=block,
+#                                        # ssl_version=ssl.PROTOCOL_SSLv3,
+#                                        cert_reqs='CERT_REQUIRED',
+#                                        ca_certs=certifi.where())

@@ -5,9 +5,10 @@ package:
 
 source:
     git_url: https://github.com/NSLS-II-CSX/pyOlog.git
+    git_tag: refactor
 
 build:
-    number: 0
+    number: 2
 
 requirements:
     build:
