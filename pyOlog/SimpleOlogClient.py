@@ -8,38 +8,83 @@ from .OlogClient import OlogClient
 from .OlogDataTypes import LogEntry, Logbook, Tag, Attachment
 
 
+def logentry_to_dict(log):
+    rtn = dict()
+
+    lid = log.getId()
+    if not lid:
+        return rtn
+
+    rtn['id'] = lid
+
+    def update(name, value):
+        if value:
+            try:
+                iter(value)
+            except TypeError:
+                pass
+            else:
+                if any(isinstance(x, (Logbook, Tag)) for x in value):
+                    value = [v.getName() for v in value]
+                else:
+                    value = value
+            rtn[name] = value
+
+    update('create_time', log.getCreateTime())
+    update('modify_time', log.getModifyTime())
+    update('text', log.getText())
+    update('owner', log.getOwner())
+    update('logbooks', log.getLogbooks())
+    update('tags', log.getTags())
+    update('attachments', log.getAttachments())
+    update('properties', log.getProperties())
+
+    return rtn
+
+
 class SimpleOlogClient(object):
     def __init__(self, *args, **kwargs):
-        """Initiate a session and do password caching using keyring"""
-
-        # First check config file for defaults
-
-        # if username is None:
-        #     if _conf.getValue('username'):
-        #         username = _conf.getValue('username')
-        #     else:
-        #         username = getpass.getuser()
-
-        # if password is None:
-        #     if _conf.getValue('password'):
-        #         password = _conf.getValue('password')
-        #     if password is None:
-        #         password = keyring.get_password('olog', username)
-        #     if password is None:
-        #         password = getpass.getpass("Olog Password (username = {}) :"
-        #                                    .format(username))
-
-        # if username and not password:
-        #     raise Exception("Unable to obtain authentication.")
+        """Initiate a session """
         self.session = OlogClient(*args, **kwargs)
 
-    def getTags(self):
+    def get_tags(self):
         """Return a list of tag names in the Olog"""
         return [t.getName() for t in self.session.listTags()]
 
-    def getLogbooks(self):
-        """Return a list of tag names in the Olog"""
+    def get_logbooks(self):
+        """Return a list of logbooks names in the Olog"""
         return [l.getName() for l in self.session.listLogbooks()]
+
+    def find(self, **kwargs):
+        """Find log entries which match kwargs
+
+        Search for logEntries based on one or many search criteria
+        >> find(search='*Timing*')
+        find logentries with the text Timing in the description
+
+        >> find(tag='magnets')
+        find log entries with the a tag named 'magnets'
+
+        >> find(logbook='controls')
+        find log entries in the logbook named 'controls'
+
+        >> find(property='context')
+        find log entires with property named 'context'
+
+        >> find(start=str(time.time() - 3600)
+        find the log entries made in the last hour
+        >> find(start=123243434, end=123244434)
+        find all the log entries made between the epoc times 123243434
+        and 123244434
+
+        Searching using multiple criteria
+        >>find(logbook='contorls', tag='magnets')
+        find all the log entries in logbook 'controls' AND with tag
+        named 'magnets'
+        """
+
+        results = self.session.find(**kwargs)
+        return [logentry_to_dict(result) for result in results]
 
     def log(self, text=None, logbooks=None, tags=None, properties=None,
             attachments=None, verify=True):
@@ -66,14 +111,14 @@ class SimpleOlogClient(object):
 
         if logbooks:
             if verify:
-                if not any([x in logbooks for x in self.getLogbooks()]):
-                    raise ValueError("Invalid Logbook name (not in Olog)")
+                if not any([x in logbooks for x in self.get_logbooks()]):
+                    raise ValueError("Logbook does not exits in Olog")
             logbooks = [Logbook(n) for n in logbooks]
 
         if tags:
             if verify:
-                if not any([x in tags for x in self.getTags()]):
-                    raise ValueError("Invalid Tag (not in Olog)")
+                if not any([x in tags for x in self.get_tags()]):
+                    raise ValueError("Tag does not exits in Olog")
             tags = [Tag(n) for n in tags]
 
         if not text:

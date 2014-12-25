@@ -21,21 +21,15 @@ else:
 
 from getpass import getpass
 
-import ssl
 import requests
-
-from requests.packages import urllib3
-from requests.adapters import HTTPAdapter
 
 #
 # Disable warning for non verified HTTPS requests
 #
+from requests.packages import urllib3
 urllib3.disable_warnings()
 
-from requests.packages.urllib3.poolmanager import PoolManager
-
 from json import JSONEncoder, JSONDecoder
-from urllib import urlencode
 from collections import OrderedDict
 
 import tempfile
@@ -92,51 +86,45 @@ class OlogClient(object):
 
         if username and password:
             # If we have a valid username and password, setup authentication
-
             logger.info("Using username %s for authentication.",
                         username)
-            self._auth = requests.auth.HTTPBasicAuth(username, password)
+            _auth = (username, password)
         else:
 
             # Don't use authentication
             logger.info("No authentiation configured.")
-            self._auth = None
+            _auth = None
 
         self._session = requests.Session()
-        self._session.mount('https://', ssl3_http_adapter())
-        # self._session.auth = _auth
+        self._session.auth = _auth
         self._session.headers.update(self.json_header)
         self._session.verify = self.verify
 
     def _get(self, url, **kwargs):
         """Do an http GET request"""
         print self._url + url
-        resp = self._session.get(self._url + url, auth=self._auth,
-                                 **kwargs)
+        resp = self._session.get(self._url + url, **kwargs)
         resp.raise_for_status()
         return resp
 
     def _put(self, url, **kwargs):
         """Do an http put request"""
         print self._url + url
-        resp = self._session.put(self._url + url, auth=self._auth,
-                                 **kwargs)
+        resp = self._session.put(self._url + url, **kwargs)
         resp.raise_for_status()
         return resp
 
     def _post(self, url, **kwargs):
         """Do an http post request"""
         print self._url + url
-        resp = self._session.post(self._url + url, auth=self._auth,
-                                  **kwargs)
+        resp = self._session.post(self._url + url, **kwargs)
         resp.raise_for_status()
         return resp
 
     def _delete(self, url, **kwargs):
         """Do an http delete request"""
         print self._url + url
-        resp = self._session.delete(self._url + url, auth=self._auth,
-                                    **kwargs)
+        resp = self._session.delete(self._url + url, **kwargs)
         resp.raise_for_status()
         return resp
 
@@ -211,30 +199,27 @@ class OlogClient(object):
         find all the log entries in logbook 'controls' AND with tag
         named 'magnets'
         '''
-        # search = '*' + text + '*'
-        query_string = "?".join((self.logs_resource,
-                                 urlencode(OrderedDict(kwds))))
-        resp = self._get(query_string)
+        resp = self._get(self.logs_resource, params=OrderedDict(kwds))
 
         logs = []
-        for jsonLogEntry in resp.json():
-            logs.append(LogEntryDecoder().dictToLogEntry(jsonLogEntry))
+        for json_log_entry in resp.json():
+            logs.append(LogEntryDecoder().dictToLogEntry(json_log_entry))
 
         return logs
 
-    def listAttachments(self, logEntryId):
+    def listAttachments(self, log_entry_id):
         '''
         Search for attachments on a logentry
 
-        :param logEntryId: The ID of the log entry to list the attachments.
+        :param log_entry_id: The ID of the log entry to list the attachments.
         '''
-        url = "/".join((self.attachments_resource, str(logEntryId)))
+        url = "/".join((self.attachments_resource, str(log_entry_id)))
         resp = self._get(url)
 
         attachments = []
         for jsonAttachment in resp.json().pop('attachment'):
             filename = jsonAttachment.pop('filename')
-            url = "/".join((self.attachments_resource, str(logEntryId),
+            url = "/".join((self.attachments_resource, str(log_entry_id),
                            filename))
             f = self._get(url)
             testFile = tempfile.NamedTemporaryFile(delete=False)
@@ -443,13 +428,3 @@ class LogEntryDecoder(JSONDecoder):
                             modifyTime=d.pop('modifiedDate'))
         else:
             return None
-
-
-class ssl3_http_adapter(HTTPAdapter):
-    """"Transport adapter" that allows us to use SSLv3."""
-
-    def init_poolmanager(self, connections, maxsize, block=False):
-        self.poolmanager = PoolManager(num_pools=connections,
-                                       maxsize=maxsize,
-                                       block=block,
-                                       ssl_version=ssl.PROTOCOL_SSLv3)
