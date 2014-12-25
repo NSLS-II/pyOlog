@@ -22,11 +22,8 @@ else:
 from getpass import getpass
 
 import requests
-
-#
-# Disable warning for non verified HTTPS requests
-#
 from requests.packages import urllib3
+# Disable warning for non verified HTTPS requests
 urllib3.disable_warnings()
 
 from json import JSONEncoder, JSONDecoder
@@ -222,10 +219,7 @@ class OlogClient(object):
             url = "/".join((self.attachments_resource, str(log_entry_id),
                            filename))
             f = self._get(url)
-            testFile = tempfile.NamedTemporaryFile(delete=False)
-            testFile.name = filename
-            testFile.write(f.content)
-            attachments.append(Attachment(file=testFile))
+            attachments.append(Attachment(file=f.content, filename=filename))
 
         return attachments
 
