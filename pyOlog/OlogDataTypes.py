@@ -126,19 +126,19 @@ class Logbook(object):
         Create a logbook
         >> Logbook('commissioning', 'controls')
         '''
-        self.__Name = str(name).strip()
-        self.__Owner = str(owner).strip()
+        self._name = str(name).strip()
+        self._owner = str(owner).strip()
 
     def getName(self):
-        return self.__Name
+        return self._name
 
     def getOwner(self):
-        return self.__Owner
+        return self._owner
 
     def __cmp__(self, *arg, **kwargs):
         if arg[0] is None:
             return 1
-        return cmp((self.__Name, self.__Owner), (arg[0].__Name, arg[0].__Owner))
+        return cmp((self._name, self._owner), (arg[0].__Name, arg[0].__Owner))
 
 
 class Tag(object):
@@ -151,19 +151,19 @@ class Tag(object):
         Create a Tag object
         >> Tag('TimingSystem')
         '''
-        self.__Name = str(name).strip()
-        self.__State = str(state).strip()
+        self._name = str(name).strip()
+        self._state = str(state).strip()
 
     def getName(self):
-        return self.__Name
+        return self._name
 
     def getState(self):
-        return self.__State
+        return self._state
 
     def __cmp__(self, *arg, **kwargs):
         if arg[0] is None:
             return 1
-        return cmp((self.__Name, self.__State), (arg[0].__Name, arg[0].__State))
+        return cmp((self._name, self._state), (arg[0].__Name, arg[0].__State))
 
 
 class Attachment(object):
@@ -183,21 +183,21 @@ class Attachment(object):
         >> Attachment(file=open('test.jpg','rb')
         >> Attachment(file=string, filename = 'mydata.png')
         '''
-        self.__file = file
-        self.__filename = filename
+        self._file = file
+        self._filename = filename
 
     def getFile(self):
-        return self.__file
+        return self._file
 
     def getFilePost(self):
-        if self.__filename is None:
-            basename = os.path.basename(self.__file.name)
+        if self._filename is None:
+            basename = os.path.basename(self._file.name)
         else:
-            basename = os.path.basename(self.__filename)
+            basename = os.path.basename(self._filename)
         mtype = mimetypes.guess_type(basename)[0]
         if mtype is None:
             mtype = 'application/octet-stream'
-        return (basename, self.__file, mtype)
+        return (basename, self._file, mtype)
 
 
 class Property(object):
@@ -214,11 +214,11 @@ class Property(object):
         >> Property('Scan', attributes={'Number':'run-1234',
                'script':'scan_20130117.py'}
         '''
-        self.__Name = str(name).strip()
+        self._name = str(name).strip()
         self.Attributes = attributes
 
     def getName(self):
-        return self.__Name
+        return self._name
 
     def getAttributes(self):
         return self.Attributes
@@ -232,5 +232,5 @@ class Property(object):
     def __cmp__(self, *arg, **kwargs):
         if arg[0] is None:
             return 1
-        return cmp((self.__Name, set(self.Attributes)),
+        return cmp((self._name, set(self.Attributes)),
                    (arg[0].__Name, set(arg[0].Attributes)))
