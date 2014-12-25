@@ -1,11 +1,11 @@
 #!/usr/bin/python
 from __future__ import print_function
 
-import os, sys
+import sys
 
 import argparse
 
-from pyOlog import Logbook, Tag, Attachment, OlogClient
+from pyOlog import Attachment
 from pyOlog import SimpleOlogClient
 from pyOlog.utils import get_screenshot, get_text_from_editor
 
@@ -40,85 +40,86 @@ can use the /etc/pyOlog.conf file to specify system wide config.
 
 """
 
+
 def olog():
-  """Command line utility for making Olog entries"""
+    """Command line utility for making Olog entries"""
 
-  # Parse Command Line Options
+    # Parse Command Line Options
 
-  parser = argparse.ArgumentParser(epilog = description,
-                                   formatter_class=argparse.RawDescriptionHelpFormatter)
-  parser.add_argument('-l', '--logbooks', dest = 'logbooks',
-                    help = "Logbook Name(s)", nargs = '*',
-                    default = None)
-  parser.add_argument('-t', '--tags', dest = 'tags',
-                    nargs = '*', help = "OLog Tag Name(s)",
-                    default = None)
-  parser.add_argument('-u', '--user', dest = 'username',
-                    default = None,
-                    help = "Username for Olog Access")
-  parser.add_argument('-f', '--file', dest = 'text',
-                    type=argparse.FileType('r'),
-                    default=None,
-                    help = "Filename of log entry text.")
-  parser.add_argument('--url', dest = 'url',
-                    help = "Base URL for Olog Access",
-                    default = None)
-  parser.add_argument('-a', '--attach', dest = 'attach',
-                    nargs = '*',
-                    help = "filename of attachments")
-  parser.add_argument('-p', '--passwd', dest = 'passwd',
-                    help = "Password for logging entry",
-                    default = None)
-  group = parser.add_mutually_exclusive_group()
-  group.add_argument('-s','--screenshot', dest = 'screenshot',
-                    help = 'Take screenshot of whole screen',
-                    default = False,
-                    action = 'store_true')
-  group.add_argument('-g', '--grap', dest = 'grab',
-                    help = 'Grab area of screen and add as attatchment.',
-                    default = False,
-                    action = 'store_true')
-  group = parser.add_mutually_exclusive_group()
-  group.add_argument('-v', action = 'store_true', dest = 'verbose',
-                     help = "Verbose output", default = False)
-  group.add_argument('-q', action = 'store_true', dest = 'quiet',
-                     help = "Suppress all output", default = False)
+    fclass = argparse.RawDescriptionHelpFormatter
+    parser = argparse.ArgumentParser(epilog=description, formatter_class=fclass)
+    parser.add_argument('-l', '--logbooks', dest='logbooks',
+                        help="Logbook Name(s)", nargs='*',
+                        default=None)
+    parser.add_argument('-t', '--tags', dest='tags',
+                        nargs='*', help="OLog Tag Name(s)",
+                        default=None)
+    parser.add_argument('-u', '--user', dest='username',
+                        default=None,
+                        help="Username for Olog Access")
+    parser.add_argument('-f', '--file', dest='text',
+                        type=argparse.FileType('r'),
+                        default=None,
+                        help="Filename of log entry text.")
+    parser.add_argument('--url', dest='url',
+                        help="Base URL for Olog Access",
+                        default=None)
+    parser.add_argument('-a', '--attach', dest='attach',
+                        nargs='*',
+                        help="filename of attachments")
+    parser.add_argument('-p', '--passwd', dest='passwd',
+                        help="Password for logging entry",
+                        default=None)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-s', '--screenshot', dest='screenshot',
+                       help='Take screenshot of whole screen',
+                       default=False,
+                       action='store_true')
+    group.add_argument('-g', '--grap', dest='grab',
+                       help='Grab area of screen and add as attatchment.',
+                       default=False,
+                       action='store_true')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-v', action='store_true', dest='verbose',
+                       help="Verbose output", default=False)
+    group.add_argument('-q', action='store_true', dest='quiet',
+                       help="Suppress all output", default=False)
 
-  args = parser.parse_args()
+    args = parser.parse_args()
 
-  if args.attach is not None:
-    attachments = [Attachment(open(a)) for a in args.attach.split(',')]
-  else:
-    attachments = []
+    if args.attach is not None:
+        attachments = [Attachment(open(a)) for a in args.attach.split(',')]
+    else:
+        attachments = []
 
-  # Grab Screenshot
+    # Grab Screenshot
 
-  if args.screenshot or args.grab:
-    if not args.quiet and args.grab:
-      print("Select area of screen to add to log entry.",
-            file = sys.stderr)
-    screenshot = get_screenshot(args.screenshot)
-    attachments.append(screenshot)
+    if args.screenshot or args.grab:
+        if not args.quiet and args.grab:
+            print("Select area of screen to add to log entry.",
+                  file=sys.stderr)
+        screenshot = get_screenshot(args.screenshot)
+        attachments.append(screenshot)
 
-  # First create the log entry
+    # First create the log entry
 
-  if args.text is None:
-    text = get_text_from_editor()
-  else:
-    text = args.text
+    if args.text is None:
+        text = get_text_from_editor()
+    else:
+        text = args.text
 
-  c = SimpleOlogClient(args.url, args.username, args.passwd)
-  c.log(text,
-        logbooks = args.logbooks,
-        tags = args.tags,
-        attachments = attachments)
+    c = SimpleOlogClient(args.url, args.username, args.passwd)
+    c.log(text, logbooks=args.logbooks, tags=args.tags,
+          attachments=attachments)
+
 
 def main():
-  try:
-    olog()
-  except KeyboardInterrupt:
-    print('\nAborted.\n')
-    sys.exit()
+    try:
+        olog()
+    except KeyboardInterrupt:
+        print('\nAborted.\n')
+        sys.exit()
 
 if __name__ == '__main__':
-  main()
+
+    main()
