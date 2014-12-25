@@ -13,26 +13,29 @@ import string
 
 from conf import _conf
 
+
 class LogEntry(object):
     '''
-    A LogEntry consists of some Text description, an owner and an associated logbook
-    It can optionally be associated with one or more logbooks and contain one or more tags, properties and attachments
+    A LogEntry consists of some Text description, an owner and an
+    associated logbook It can optionally be associated with one or more
+    logbooks and contain one or more tags, properties and attachments
     '''
-
-    def __init__(self, text, owner = None, logbooks = None,
+    def __init__(self, text, owner=None, logbooks=None,
                  tags=None, attachments=None, properties=None, id=None,
                  createTime=None, modifyTime=None):
         '''
         Constructor for log Entry
         Simple LogEntry
-        >> LogEntry('test log entry', 'controls', logbooks=[Logbook('commissioning', owner='controls')])
+        >> LogEntry('test log entry', 'controls',
+                    logbooks=[Logbook('commissioning', owner='controls')])
 
         Comprehensive logEntry
         >> LogEntry('test log entry', 'controls',
                     logbooks=[Logbook('commissioning', owner='controls')],
                     tags=[Tag('TimingSystem')]
                     properties=[Property('Ticket',
-                    attributes={'Id':'1234','URL':'http://trac.nsls2.bnl.gov/trac/1234'}]
+                                attributes={'Id':'1234',
+                                'URL':'http://trac.nsls2.bnl.gov/trac/1234'}]
                     attachments=[Attachment(open('databrowser.plt'))]
                     )
         '''
@@ -41,47 +44,48 @@ class LogEntry(object):
 
         self.Owner = _conf.getValue('username', owner)
         if self.Owner is None:
-          raise ValueError("You must specify an owner (hint: check config file)")
+            raise ValueError("You must specify an owner")
 
         if logbooks is None:
-          logbooks = _conf.getValue('logbooks')
-          if logbooks is None:
-            raise ValueError("You must specify a logbook (hint: check config file)")
-          self.logbooks = [Logbook(n) for n in logbooks.split(',')]
+            logbooks = _conf.getValue('logbooks')
+            if logbooks is None:
+                raise ValueError("You must specify a logbook")
+
+            self.logbooks = [Logbook(n) for n in logbooks.split(',')]
         else:
-          self.logbooks = logbooks
+            self.logbooks = logbooks
 
         if tags is None:
-          tags = _conf.getValue('tags')
-          if tags is not None:
-            self.tags = [Tag(n) for n in tags.split(',')]
-          else:
-            self.tags = []
+            tags = _conf.getValue('tags')
+            if tags is not None:
+                self.tags = [Tag(n) for n in tags.split(',')]
+            else:
+                self.tags = []
         else:
-          self.tags = tags
+            self.tags = tags
 
         if attachments is not None:
-          self.attachments = attachments
+            self.attachments = attachments
         else:
-          self.attachments = []
+            self.attachments = []
 
         if properties is not None:
-          self.properties = properties
+            self.properties = properties
         else:
-          self.properties = []
+            self.properties = []
 
-        self.__id = id
-        self.__createTime = createTime
-        self.__modifytime = modifyTime
+        self._id = id
+        self._create_time = createTime
+        self._modify_time = modifyTime
 
     def getId(self):
-        return self.__id
+        return self._id
 
     def getCreateTime(self):
-        return self.__createTime
+        return self._create_time
 
     def getModifyTime(self):
-        return self.__modifytime
+        return self._modify_time
 
     def getText(self):
         return self.Text
@@ -102,12 +106,12 @@ class LogEntry(object):
         return self.properties
 
     def __cmp__(self, *arg, **kwargs):
-        if arg[0] == None:
+        if arg[0] is None:
             return 1
-        if self.__id:
-            return cmp((self.__id),(arg[0].__id))
+        if self._id:
+            return cmp((self._id), (arg[0].__id))
         else:
-            raise Exception, 'Invalid LogEntry: id cannot be None'
+            raise ValueError('Invalid LogEntry: id cannot be None')
 
 
 class Logbook(object):
@@ -132,9 +136,10 @@ class Logbook(object):
         return self.__Owner
 
     def __cmp__(self, *arg, **kwargs):
-        if arg[0] == None:
+        if arg[0] is None:
             return 1
         return cmp((self.__Name, self.__Owner), (arg[0].__Name, arg[0].__Owner))
+
 
 class Tag(object):
     '''
@@ -156,9 +161,10 @@ class Tag(object):
         return self.__State
 
     def __cmp__(self, *arg, **kwargs):
-        if arg[0] == None:
+        if arg[0] is None:
             return 1
         return cmp((self.__Name, self.__State), (arg[0].__Name, arg[0].__State))
+
 
 class Attachment(object):
     '''
@@ -166,7 +172,7 @@ class Attachment(object):
     TODO this is not thread safe
     '''
 
-    def __init__(self, file, filename = None):
+    def __init__(self, file, filename=None):
         '''
         Create Attachment
 
@@ -177,30 +183,36 @@ class Attachment(object):
         >> Attachment(file=open('test.jpg','rb')
         >> Attachment(file=string, filename = 'mydata.png')
         '''
-        self.__file=file
-        self.__filename=filename
+        self.__file = file
+        self.__filename = filename
+
     def getFile(self):
         return self.__file
+
     def getFilePost(self):
         if self.__filename is None:
-          basename = os.path.basename(self.__file.name)
+            basename = os.path.basename(self.__file.name)
         else:
-          basename = os.path.basename(self.__filename)
+            basename = os.path.basename(self.__filename)
         mtype = mimetypes.guess_type(basename)[0]
         if mtype is None:
-          mtype = 'application/octet-stream'
-        return  (basename, self.__file, mtype)
+            mtype = 'application/octet-stream'
+        return (basename, self.__file, mtype)
+
 
 class Property(object):
     '''
-    A property consists of a unique name and a set of attributes consisting of key value pairs
+    A property consists of a unique name and a set of attributes
+    consisting of key value pairs
     '''
 
     def __init__(self, name, attributes=None):
         '''
         Create a property with a unique name and attributes
-        >> Property('Ticket', attributes={'Id':'1234','URL':'http://trac.nsls2.bnl.gov/trac/1234'}
-        >> Property('Scan', attributes={'Number':'run-1234', 'script':'scan_20130117.py'}
+        >> Property('Ticket', attributes={'Id':'1234',
+               'URL':'http://trac.nsls2.bnl.gov/trac/1234'}
+        >> Property('Scan', attributes={'Number':'run-1234',
+               'script':'scan_20130117.py'}
         '''
         self.__Name = str(name).strip()
         self.Attributes = attributes
@@ -209,7 +221,7 @@ class Property(object):
         return self.__Name
 
     def getAttributes(self):
-        return self.Attributes;
+        return self.Attributes
 
     def getAttributeNames(self):
         return self.Attributes.keys()
@@ -218,7 +230,7 @@ class Property(object):
         return self.Attributes.get(attributeName)
 
     def __cmp__(self, *arg, **kwargs):
-        if arg[0] == None:
+        if arg[0] is None:
             return 1
-        return cmp((self.__Name, set(self.Attributes)), (arg[0].__Name, set(arg[0].Attributes)))
-
+        return cmp((self.__Name, set(self.Attributes)),
+                   (arg[0].__Name, set(arg[0].Attributes)))
