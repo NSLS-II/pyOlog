@@ -12,19 +12,20 @@ text_message = '''
 #
 '''
 
+
 def save_pyplot_figure(**kwargs):
     """Save a matplotlib figure to an Olog Attachment Object"""
     import matplotlib.pyplot as plt
     import StringIO
 
     imgdata = StringIO.StringIO()
-    plt.savefig(imgdata, format = 'pdf', **kwargs)
+    plt.savefig(imgdata, format='pdf', **kwargs)
     imgdata.seek(0)
 
     a = [Attachment(imgdata, 'plot.pdf')]
 
     imgdata = StringIO.StringIO()
-    plt.savefig(imgdata, format = 'png', dpi = 50,
+    plt.savefig(imgdata, format='png', dpi=50,
                 **kwargs)
     imgdata.seek(0)
 
@@ -32,20 +33,22 @@ def save_pyplot_figure(**kwargs):
 
     return a
 
-def get_screenshot(root = False, itype = 'png'):
+
+def get_screenshot(root=False, itype='png'):
     """Open ImageMagick and get screngrab as png."""
     if root:
         opts = '-window root'
     else:
         opts = ''
-    image = subprocess.Popen('import {0} {1}:-'.format(opts,itype),
-                             shell = True,
-                             stdout = subprocess.PIPE)
+    image = subprocess.Popen('import {0} {1}:-'.format(opts, itype),
+                             shell=True,
+                             stdout=subprocess.PIPE)
     img = image.communicate()[0]
 
     return Attachment(img, 'screenshot.' + itype)
 
-def get_text_from_editor(prepend = None, postpend = None):
+
+def get_text_from_editor(prepend=None, postpend=None):
     """Open text editor and return text"""
     with tempfile.NamedTemporaryFile(suffix='.tmp') as f:
         # Write out the file and flush
@@ -77,13 +80,14 @@ def get_text_from_editor(prepend = None, postpend = None):
         text = '\n'.join(lines)
     return text
 
+
 def get_pyplot_fig(self, *args, **kwargs):
     """Save a matplotlib figure as an Attachment"""
     import matplotlib.pyplot as plt
     import StringIO
 
     imgdata = StringIO.StringIO()
-    plt.savefig(imgdata, format = 'png', **kwargs)
+    plt.savefig(imgdata, format='png', **kwargs)
     imgdata.seek(0)
 
     a = Attachment(imgdata, 'plot.png')
