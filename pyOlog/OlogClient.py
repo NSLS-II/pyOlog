@@ -29,10 +29,8 @@ urllib3.disable_warnings()
 from json import JSONEncoder, JSONDecoder
 from collections import OrderedDict
 
-import tempfile
-
-from OlogDataTypes import LogEntry, Logbook, Tag, Property, Attachment
-from conf import _conf
+from .OlogDataTypes import LogEntry, Logbook, Tag, Property, Attachment
+from .conf import _conf
 
 
 class OlogClient(object):
@@ -139,7 +137,7 @@ class OlogClient(object):
         # Handle attachments
 
         for attachment in log_entry.getAttachments():
-            url = "/".join((self.attachments_resource, str(id)))
+            url = "{0}/{1}".format(self.attachments_resource, id)
             resp = self._post(url, files={'file': attachment.getFilePost()})
 
     def createLogbook(self, logbook):
@@ -185,7 +183,7 @@ class OlogClient(object):
         >> find(property='context')
         find log entires with property named 'context'
 
-        >> find(start=str(time.time() - 3600)
+        >> find(start=time.time() - 3600)
         find the log entries made in the last hour
         >> find(start=123243434, end=123244434)
         find all the log entries made between the epoc times 123243434
@@ -210,14 +208,14 @@ class OlogClient(object):
 
         :param log_entry_id: The ID of the log entry to list the attachments.
         '''
-        url = "/".join((self.attachments_resource, str(log_entry_id)))
+        url = "{0}/{1}".format(self.attachments_resource, log_entry_id)
         resp = self._get(url)
 
         attachments = []
         for jsonAttachment in resp.json().pop('attachment'):
             filename = jsonAttachment.pop('filename')
-            url = "/".join((self.attachments_resource, str(log_entry_id),
-                           filename))
+            url = "{0}/{1}/{2}".format(self.attachments_resource, log_entry_id,
+                                       filename)
             f = self._get(url)
             attachments.append(Attachment(file=f.content, filename=filename))
 
@@ -321,7 +319,7 @@ class PropertyEncoder(JSONEncoder):
         if isinstance(obj, Property):
             test = {}
             for key in obj.getAttributes():
-                test[str(key)] = str(obj.getAttributeValue(key))
+                test[str(key)] = '{}'.format(obj.getAttributeValue(key))
             prop = OrderedDict()
             prop["name"] = obj.getName()
             prop["attributes"] = test
