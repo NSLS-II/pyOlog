@@ -2,7 +2,7 @@ import os
 import subprocess
 import tempfile
 
-from OlogDataTypes import Attachment
+from .. import Attachment
 
 text_message = '''
 #

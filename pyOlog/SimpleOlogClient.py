@@ -3,7 +3,6 @@ __author__ = "swilkins"
 A simple API to the Olog client in python
 """
 
-from .utils import get_text_from_editor
 from .OlogClient import OlogClient
 from .OlogDataTypes import LogEntry, Logbook, Tag, Attachment
 
@@ -120,9 +119,6 @@ class SimpleOlogClient(object):
                 if not any([x in tags for x in self.get_tags()]):
                     raise ValueError("Tag does not exits in Olog")
             tags = [Tag(n) for n in tags]
-
-        if not text:
-            text = get_text_from_editor()
 
         toattach = []
         if attachments:

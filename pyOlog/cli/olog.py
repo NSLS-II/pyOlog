@@ -5,9 +5,9 @@ import sys
 
 import argparse
 
-from pyOlog import Attachment
-from pyOlog import SimpleOlogClient
-from pyOlog.utils import get_screenshot, get_text_from_editor
+from .. import Attachment
+from .. import SimpleOlogClient
+from .utils import get_screenshot, get_text_from_editor
 
 description = """\
 Command line utility for making OLog entries.

@@ -17,5 +17,7 @@ setup(name='pyOlog',
       packages=['pyOlog'],
       requires=['requests (>=2.0.0)', 'urllib3 (>=1.7.1)'],
       entry_points={'console_scripts': [
-                    'olog = pyOlog.olog:main']}
+                    'olog = pyOlog.cli:main'],
+                    'gui_scripts': [
+                    'ologgui = pyOlog.gui:main']}
       )
