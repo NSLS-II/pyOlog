@@ -12,9 +12,9 @@ logger = logging.getLogger(__name__)
 
 KEYRING_NAME = 'olog'
 try:
-    from keyring import get_password
+    import keyring
 except ImportError:
-    have_keyring = False
+    keyring = None
     logger.warning("No keyring module found")
 else:
     have_keyring = True
@@ -61,15 +61,15 @@ class OlogClient(object):
         the keyring module and askpass to get a password.
 
         '''
-        self._url = _conf.getValue('url', url)
+        self._url = _conf.get_value('url', url)
         self.verify = False
-        username = _conf.getValue('username', username)
-        password = _conf.getValue('password', password)
+        username = _conf.get_username(username)
+        password = _conf.get_value('password', password)
 
         if username and not password and ask:
             # try methods for a password
-            if have_keyring:
-                password = get_password(KEYRING_NAME, username)
+            if keyring:
+                password = keyring.get_password(KEYRING_NAME, username)
 
             # If it is not in the keyring, or we don't have that module
             if not password:
@@ -314,31 +314,30 @@ class OlogClient(object):
 
 
 class PropertyEncoder(JSONEncoder):
-
     def default(self, obj):
         if isinstance(obj, Property):
             test = {}
             for key in obj.getAttributes():
                 test[str(key)] = '{}'.format(obj.getAttributeValue(key))
             prop = OrderedDict()
-            prop["name"] = obj.getName()
+            prop["name"] = obj.name
             prop["attributes"] = test
             return prop
         return JSONEncoder.default(self, obj)
 
 
 class PropertyDecoder(JSONDecoder):
-
     def __init__(self):
         JSONDecoder.__init__(self, object_hook=self.dictToProperty)
 
     def dictToProperty(self, d):
         if d:
-            return Property(name=d.pop('name'), attributes=d.pop('attributes'))
+            return Property(name=d.pop('name'),
+                            attributes=d.pop('attributes'),
+                            )
 
 
 class LogbookEncoder(JSONEncoder):
-
     def default(self, obj):
         if isinstance(obj, Logbook):
             return {"name": obj.getName(), "owner": obj.getOwner()}
@@ -346,7 +345,6 @@ class LogbookEncoder(JSONEncoder):
 
 
 class LogbookDecoder(JSONDecoder):
-
     def __init__(self):
         JSONDecoder.__init__(self, object_hook=self.dictToLogbook)
 
@@ -358,7 +356,6 @@ class LogbookDecoder(JSONDecoder):
 
 
 class TagEncoder(JSONEncoder):
-
     def default(self, obj):
         if isinstance(obj, Tag):
             return {"state": obj.getState(), "name": obj.getName()}
@@ -366,7 +363,6 @@ class TagEncoder(JSONEncoder):
 
 
 class TagDecoder(JSONDecoder):
-
     def __init__(self):
         JSONDecoder.__init__(self, object_hook=self.dictToTag)
 
@@ -398,7 +394,6 @@ class LogEntryEncoder(JSONEncoder):
 
 
 class LogEntryDecoder(JSONDecoder):
-
     def __init__(self):
         JSONDecoder.__init__(self, object_hook=self.dictToLogEntry)
 

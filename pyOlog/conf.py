@@ -15,6 +15,7 @@ tags=pyOlog
 import os
 import os.path
 import logging
+import getpass
 
 logger = logging.getLogger(__name__)
 
@@ -31,13 +32,15 @@ class Config(object):
     def __init__(self, conf='DEFAULT'):
         """Initialise config object"""
         self.heading = conf
+
         import ConfigParser
         self.cf = ConfigParser.SafeConfigParser(defaults=self.defaults)
         files = self.cf.read(self.conf_files)
+
         for f in files:
             logger.info("Read config file %s", f)
 
-    def getValue(self, arg, value=None):
+    def get_value(self, arg, value=None):
         '''
         Get a default from the config file.
 
@@ -56,6 +59,26 @@ class Config(object):
                 return self.cf.get(self.heading, arg)
             else:
                 return None
+        else:
+            return value
+
+    def get_username(self, value=None):
+        """Get the username to be used"""
+        if value is None:
+            if self.cf.has_option(self.heading, 'username'):
+                return self.cf.get(self.heading, 'username')
+            else:
+                return getpass.getuser()
+        else:
+            return value
+
+    def get_owner(self, value=None):
+        """Get the owner for tags, logbooks and properties to be used"""
+        if value is None:
+            if self.cf.has_option(self.heading, 'default owner'):
+                return self.cf.get(self.heading, 'default owner')
+            else:
+                return self.get_username()
         else:
             return value
 

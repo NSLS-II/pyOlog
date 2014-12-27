@@ -7,11 +7,9 @@ class MainWindow(QtGui.QMainWindow):
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
         self.scribble_area = ScribbleArea()
-        self.setCentralWidget(self.scribble_area)
-        self.initUI()
-
-    def initUI(self):
-        self.setGeometry(100, 100, 1030, 800)
+        self.text_area = QtGui.QTextEdit(self)
+        self.setCentralWidget(self.text_area)
+        self.setGeometry(20, 20, 1030, 800)
         self.setWindowTitle("Olog Gui Client")
 
 

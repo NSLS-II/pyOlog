@@ -4,7 +4,7 @@ A simple API to the Olog client in python
 """
 
 from .OlogClient import OlogClient
-from .OlogDataTypes import LogEntry, Logbook, Tag, Attachment
+from .OlogDataTypes import LogEntry, Logbook, Tag, Attachment, Property
 
 
 def logentry_to_dict(log):
@@ -46,13 +46,43 @@ class SimpleOlogClient(object):
         """Initiate a session """
         self.session = OlogClient(*args, **kwargs)
 
-    def get_tags(self):
+    @property
+    def tags(self):
         """Return a list of tag names in the Olog"""
         return [t.getName() for t in self.session.listTags()]
 
-    def get_logbooks(self):
+    @property
+    def logbooks(self):
         """Return a list of logbooks names in the Olog"""
         return [l.getName() for l in self.session.listLogbooks()]
+
+    def create_logbook(self, logbook, owner=None):
+        """Create a logbook
+
+        :param logbook: Name of logbook to create
+        :param owner: Owner of logbook (defaults to default from config file)
+        """
+        logbook = Logbook(logbook, owner)
+        self.session.createLogbook(logbook)
+
+    def create_tag(self, tag, active=True):
+        """Create a tag
+
+        :param tag: Name of tag to create
+        :param active: State of tag
+        """
+
+        tag = Tag(tag, active)
+        self.session.createTag(tag)
+
+    def create_property(self, property, keys):
+        """Create a property
+
+        :param property: Name of property
+        :param keys: Name of keys associated with the property.
+        """
+        property = Property(property, keys)
+        self.session.createProperty(property)
 
     def find(self, **kwargs):
         """Find log entries which match kwargs

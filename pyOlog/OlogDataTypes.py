@@ -1,11 +1,11 @@
-'''
+"""
 Copyright (c) 2010 Brookhaven National Laboratory
 All rights reserved. Use is subject to license terms and conditions.
 
 Created on Jan 10, 2013
 
 @author: shroffk
-'''
+"""
 
 import os
 import mimetypes
@@ -15,16 +15,24 @@ from conf import _conf
 
 
 class LogEntry(object):
-    '''
-    A LogEntry consists of some Text description, an owner and an
+    """A LogEntry consists of some Text description, an owner and an
     associated logbook It can optionally be associated with one or more
     logbooks and contain one or more tags, properties and attachments
-    '''
-    def __init__(self, text, owner=None, logbooks=None,
-                 tags=None, attachments=None, properties=None, id=None,
-                 createTime=None, modifyTime=None):
-        '''
-        Constructor for log Entry
+    """
+    def __init__(self, text=None, owner=None, logbooks=None,
+                 tags=None, attachments=None, properties=None,
+                 id=None, create_time=None, modify_time=None):
+        """ Constructor for log Entry
+
+        :param text: Text of log entry
+        :type text: string
+        :param owner: Owner of log entry
+        :type owner: string
+        :param logbooks: Logbooks to add entry to
+        :type logbooks: string, list of strings, Logbook object.
+        :param tags: Tags to add to log entries
+        :type tags: string, list of strings, Tag object.
+
         Simple LogEntry
         >> LogEntry('test log entry', 'controls',
                     logbooks=[Logbook('commissioning', owner='controls')])
@@ -38,16 +46,16 @@ class LogEntry(object):
                                 'URL':'http://trac.nsls2.bnl.gov/trac/1234'}]
                     attachments=[Attachment(open('databrowser.plt'))]
                     )
-        '''
+        """
         text = ''.join(c for c in text if c in string.printable)
-        self.Text = str(text).strip()
+        self.text = text.strip()
+        self.owner = _conf.get_value('username', owner)
 
-        self.Owner = _conf.getValue('username', owner)
-        if self.Owner is None:
+        if self.owner is None:
             raise ValueError("You must specify an owner")
 
         if logbooks is None:
-            logbooks = _conf.getValue('logbooks')
+            logbooks = _conf.get_value('logbooks')
             if logbooks is None:
                 raise ValueError("You must specify a logbook")
 
@@ -56,7 +64,7 @@ class LogEntry(object):
             self.logbooks = logbooks
 
         if tags is None:
-            tags = _conf.getValue('tags')
+            tags = _conf.get_value('tags')
             if tags is not None:
                 self.tags = [Tag(n) for n in tags.split(',')]
             else:
@@ -74,163 +82,172 @@ class LogEntry(object):
         else:
             self.properties = []
 
-        self._id = id
-        self._create_time = createTime
-        self._modify_time = modifyTime
-
-    def getId(self):
-        return self._id
-
-    def getCreateTime(self):
-        return self._create_time
-
-    def getModifyTime(self):
-        return self._modify_time
-
-    def getText(self):
-        return self.Text
-
-    def getOwner(self):
-        return self.Owner
-
-    def getLogbooks(self):
-        return self.logbooks
-
-    def getTags(self):
-        return self.tags
-
-    def getAttachments(self):
-        return self.attachments
-
-    def getProperties(self):
-        return self.properties
+        self.id = id
+        self.create_time = create_time
+        self.modify_time = modify_time
 
     def __cmp__(self, *arg, **kwargs):
         if arg[0] is None:
             return 1
         if self._id:
-            return cmp((self._id), (arg[0].__id))
+            return cmp((self.id), (arg[0].id))
         else:
             raise ValueError('Invalid LogEntry: id cannot be None')
 
 
 class Logbook(object):
-    '''
-    A Logbook consist of an unique name and an owner,
+    """ A Logbook consist of an unique name and an owner,
     logentries can be added to a logbook so long as the user either the owner
     or a member of the owner group
-    '''
+    """
 
-    def __init__(self, name, owner=None):
-        '''
-        Create a logbook
+    def __init__(self, name, owner=None, active=True):
+        """ Create logbook object
+
+        :param name: Name of logbook
+        :type name: string
+        :param owner: Owner of logbook
+        :type owner: string
+        :param active: State of logbook
+        :type active: bool
+
+        If the owner is not specified then the default is read from the
+        config file.
+
+
+        For example:
         >> Logbook('commissioning', 'controls')
-        '''
-        self._name = str(name).strip()
-        self._owner = str(owner).strip()
-
-    def getName(self):
-        return self._name
-
-    def getOwner(self):
-        return self._owner
+        """
+        self.name = '{}'.format(name).strip()
+        self.owner = _conf.get_owner(owner)
+        self.active = active
 
     def __cmp__(self, *arg, **kwargs):
         if arg[0] is None:
             return 1
-        return cmp((self._name, self._owner), (arg[0].__Name, arg[0].__Owner))
+        return cmp((self.name, self.owner), (arg[0].name, arg[0].owner))
 
 
 class Tag(object):
-    '''
-    A Tag consists of a unique name, it is used to tag logEntries"""
-    '''
+    """ A Tag consists of a unique name, it is used to tag log entries
+    """
 
-    def __init__(self, name, state="Active"):
-        '''
-        Create a Tag object
+    def __init__(self, name, active=True):
+        """
+        :param name: Name of tag
+        :type name: string
+        :param active: The tags active state
+        :type active: bool
+
+        For example:
         >> Tag('TimingSystem')
-        '''
-        self._name = str(name).strip()
-        self._state = str(state).strip()
+        """
+        self.name = "{}".format(name).strip()
+        if active:
+            self.state = 'Active'
+        else:
+            self.state = 'Inactive'
 
-    def getName(self):
-        return self._name
+    @property
+    def active(self):
+        if self.state == 'Active':
+            return True
+        else:
+            return False
 
-    def getState(self):
-        return self._state
+    @active.setter
+    def active(self, value):
+        if value:
+            self.state = 'Active'
+        else:
+            self.state = 'Inactive'
 
     def __cmp__(self, *arg, **kwargs):
         if arg[0] is None:
             return 1
-        return cmp((self._name, self._state), (arg[0].__Name, arg[0].__State))
+        return cmp((self.name, self.state), (arg[0].name, arg[0].state))
 
 
 class Attachment(object):
-    '''
-    A Attachment, a file associated with the log entry
-    TODO this is not thread safe
-    '''
+    """ A class representation of an Olog Attachment. An Attachment, is
+    a file associated with the log entry. This object contains filename and
+    mime-type information about the attachment.
+    """
+    default_mime_type = 'application/octet-stream'
 
-    def __init__(self, file, filename=None):
-        '''
-        Create Attachment
+    def __init__(self, file, filename=None, mime_type=None):
+        """ Create Attachment
 
-        file can either be a file object or a string. For a
-        string, the filename must be specified.
+        :param file: File object or data
+        :type file: String, or file object
+        :param filename: Filename of attatchment
+        :type filename: String
+        :param mime_type: Mime-type of attachment
+        :type mime_type: String
+
+        For example:
 
         >> Attachment(file=open('/home/usr/databrowser.plt')
         >> Attachment(file=open('test.jpg','rb')
-        >> Attachment(file=string, filename = 'mydata.png')
-        '''
-        self._file = file
-        self._filename = filename
+        >> Attachment(file=string, filename='mydata.png')
+        """
+        self.file = file
+        self.filename = filename
+        self.mime_type = mime_type
 
-    def getFile(self):
-        return self._file
+    def get_file_post(self):
+        """Get tuple for makeing http post of attachment
 
-    def getFilePost(self):
-        if self._filename is None:
-            basename = os.path.basename(self._file.name)
+        :returns: Tuple of filename, file object and mimetype
+        :rtype: tuple
+        """
+
+        if self.filename is None:
+            basename = os.path.basename(self.file.name)
         else:
-            basename = os.path.basename(self._filename)
-        mtype = mimetypes.guess_type(basename)[0]
-        if mtype is None:
-            mtype = 'application/octet-stream'
-        return (basename, self._file, mtype)
+            basename = os.path.basename(self.filename)
+
+        if self.mime_type is None:
+            mtype = mimetypes.guess_type(basename)[0]
+            if mtype is None:
+                mtype = self.default_mime_type
+
+        return (basename, self.file, mtype)
 
 
 class Property(object):
-    '''
-    A property consists of a unique name and a set of attributes
-    consisting of key value pairs
-    '''
-
+    """ A class representation of an Olog property. A property consists of
+    a unique name and a set of attributes consisting of key value pairs.
+    The ket value pairs are represented as a dictionary.
+    """
     def __init__(self, name, attributes=None):
-        '''
-        Create a property with a unique name and attributes
-        >> Property('Ticket', attributes={'Id':'1234',
-               'URL':'http://trac.nsls2.bnl.gov/trac/1234'}
-        >> Property('Scan', attributes={'Number':'run-1234',
-               'script':'scan_20130117.py'}
-        '''
-        self._name = str(name).strip()
-        self.Attributes = attributes
+        """ Create a property with a unique name and attributes
 
-    def getName(self):
-        return self._name
+        :param name: Name of property
+        :type name: string
+        :param attributes: Attributes of the property as a dict
+        :type attributes: dictionary
 
-    def getAttributes(self):
-        return self.Attributes
+        For example:
 
-    def getAttributeNames(self):
-        return self.Attributes.keys()
+        >>> Property('Ticket', attributes={'Id':'1234',
+                     'URL':'http://trac.nsls2.bnl.gov/trac/1234'}
+        >>> Property('Scan', attributes={'Number':'run-1234',
+                     'script':'scan_20130117.py'}
+        """
+        self.name = name
+        self.attributes = attributes
 
-    def getAttributeValue(self, attributeName):
-        return self.Attributes.get(attributeName)
+    @property
+    def attribute_names(self):
+        return self.attributes.keys()
+
+    @property
+    def attribute_value(self, attribute_name):
+        return self.attributes.get(attribute_name)
 
     def __cmp__(self, *arg, **kwargs):
         if arg[0] is None:
             return 1
-        return cmp((self._name, set(self.Attributes)),
-                   (arg[0].__Name, set(arg[0].Attributes)))
+        return cmp((self.name, set(self.attributes)),
+                   (arg[0].name, set(arg[0].attributes)))
