@@ -10,7 +10,7 @@ from .OlogDataTypes import LogEntry, Logbook, Tag, Attachment, Property
 def logentry_to_dict(log):
     rtn = dict()
 
-    lid = log.getId()
+    lid = log.id
     if not lid:
         return rtn
 
@@ -24,19 +24,19 @@ def logentry_to_dict(log):
                 pass
             else:
                 if any(isinstance(x, (Logbook, Tag)) for x in value):
-                    value = [v.getName() for v in value]
+                    value = [v.name for v in value]
                 else:
                     value = value
             rtn[name] = value
 
-    update('create_time', log.getCreateTime())
-    update('modify_time', log.getModifyTime())
-    update('text', log.getText())
-    update('owner', log.getOwner())
-    update('logbooks', log.getLogbooks())
-    update('tags', log.getTags())
-    update('attachments', log.getAttachments())
-    update('properties', log.getProperties())
+    update('create_time', log.create_time)
+    update('modify_time', log.modify_time)
+    update('text', log.text)
+    update('owner', log.owner)
+    update('logbooks', log.logbooks)
+    update('tags', log.tags)
+    update('attachments', log.attachments)
+    update('properties', log.properties)
 
     return rtn
 
@@ -49,12 +49,18 @@ class SimpleOlogClient(object):
     @property
     def tags(self):
         """Return a list of tag names in the Olog"""
-        return [t.getName() for t in self.session.listTags()]
+        return [t.name for t in self.session.listTags()]
 
     @property
     def logbooks(self):
         """Return a list of logbooks names in the Olog"""
-        return [l.getName() for l in self.session.listLogbooks()]
+        return [l.name for l in self.session.listLogbooks()]
+
+    @property
+    def properties(self):
+        """Return a list of logbooks names in the Olog"""
+        return [(l.name, l.attribute_names)
+                for l in self.session.listProperties()]
 
     def create_logbook(self, logbook, owner=None):
         """Create a logbook
@@ -81,7 +87,9 @@ class SimpleOlogClient(object):
         :param property: Name of property
         :param keys: Name of keys associated with the property.
         """
-        property = Property(property, keys)
+        keys_dict = dict()
+        [keys_dict.update({k: ''}) for k in keys]
+        property = Property(property, keys_dict)
         self.session.createProperty(property)
 
     def find(self, **kwargs):
@@ -140,13 +148,13 @@ class SimpleOlogClient(object):
 
         if logbooks:
             if verify:
-                if not any([x in logbooks for x in self.get_logbooks()]):
+                if not any([x in logbooks for x in self.logbooks]):
                     raise ValueError("Logbook does not exits in Olog")
             logbooks = [Logbook(n) for n in logbooks]
 
         if tags:
             if verify:
-                if not any([x in tags for x in self.get_tags()]):
+                if not any([x in tags for x in self.tags]):
                     raise ValueError("Tag does not exits in Olog")
             tags = [Tag(n) for n in tags]
 
@@ -160,4 +168,4 @@ class SimpleOlogClient(object):
 
         log = LogEntry(text, logbooks=logbooks,
                        tags=tags, attachments=toattach)
-        self.session.log(log)
+        return self.session.log(log)

@@ -250,10 +250,6 @@ class Property(object):
     def attribute_names(self):
         return self.attributes.keys()
 
-    @property
-    def attribute_value(self, attribute_name):
-        return self.attributes.get(attribute_name)
-
     def __cmp__(self, *arg, **kwargs):
         if arg[0] is None:
             return 1
