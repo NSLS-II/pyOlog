@@ -49,18 +49,18 @@ class SimpleOlogClient(object):
     @property
     def tags(self):
         """Return a list of tag names in the Olog"""
-        return [t.name for t in self.session.listTags()]
+        return [t.name for t in self.session.list_tags()]
 
     @property
     def logbooks(self):
         """Return a list of logbooks names in the Olog"""
-        return [l.name for l in self.session.listLogbooks()]
+        return [l.name for l in self.session.list_logbooks()]
 
     @property
     def properties(self):
-        """Return a list of logbooks names in the Olog"""
+        """Return a list of propertys in the Olog"""
         return [(l.name, l.attribute_names)
-                for l in self.session.listProperties()]
+                for l in self.session.list_properties()]
 
     def create_logbook(self, logbook, owner=None):
         """Create a logbook
@@ -137,13 +137,13 @@ class SimpleOlogClient(object):
         """
 
         if logbooks:
-            if not isinstance(logbooks, list):
+            if isinstance(logbooks, basestring):
                 logbooks = [logbooks]
         if tags:
-            if not isinstance(tags, list):
+            if isinstance(tags, basestring):
                 tags = [tags]
         if attachments:
-            if not isinstance(attachments, list):
+            if isinstance(attachments, (Attachment, file)):
                 attachments = [attachments]
 
         if logbooks:
@@ -158,14 +158,22 @@ class SimpleOlogClient(object):
                     raise ValueError("Tag does not exits in Olog")
             tags = [Tag(n) for n in tags]
 
+        if properties:
+            properties = [Property(a, b) for a, b in properties]
+
         toattach = []
         if attachments:
             for a in attachments:
                 if isinstance(a, Attachment):
                     toattach.append(a)
+                elif isinstance(a, file):
+                    toattach.append(Attachment(a))
                 else:
-                    toattach.append(Attachment(open(a)))
+                    raise ValueError("Attachments must be file objects or \
+                                     Olog Attachment objects")
 
         log = LogEntry(text, logbooks=logbooks,
-                       tags=tags, attachments=toattach)
+                       tags=tags, properties=properties,
+                       attachments=toattach)
+
         return self.session.log(log)

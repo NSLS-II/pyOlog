@@ -201,7 +201,7 @@ class OlogClient(object):
 
         return logs
 
-    def listAttachments(self, log_entry_id):
+    def list_attachments(self, log_entry_id):
         '''
         Search for attachments on a logentry
 
@@ -220,7 +220,7 @@ class OlogClient(object):
 
         return attachments
 
-    def listTags(self):
+    def list_tags(self):
         '''
         List all tags in the Olog.
         '''
@@ -231,7 +231,7 @@ class OlogClient(object):
             tags.append(TagDecoder().dictToTag(jsonTag))
         return tags
 
-    def listLogbooks(self):
+    def list_logbooks(self):
         '''
         List all logbooks in the Olog.
         '''
@@ -242,7 +242,7 @@ class OlogClient(object):
             logbooks.append(LogbookDecoder().dictToLogbook(jsonLogbook))
         return logbooks
 
-    def listProperties(self):
+    def list_properties(self):
         '''
         List all Properties and their attributes in the Olog.
         '''
