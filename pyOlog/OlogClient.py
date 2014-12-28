@@ -34,9 +34,6 @@ from .conf import _conf
 
 
 class OlogClient(object):
-    '''
-    classdocs
-    '''
     json_header = {'content-type': 'application/json',
                    'accept': 'application/json'}
     logs_resource = '/resources/logs'
@@ -317,8 +314,8 @@ class PropertyEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Property):
             test = {}
-            for key in obj.getAttributes():
-                test[str(key)] = '{}'.format(obj.getAttributeValue(key))
+            for key in obj.attributes:
+                test[str(key)] = '{}'.format(obj.attribute_value(key))
             prop = OrderedDict()
             prop["name"] = obj.name
             prop["attributes"] = test
@@ -340,7 +337,7 @@ class PropertyDecoder(JSONDecoder):
 class LogbookEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Logbook):
-            return {"name": obj.getName(), "owner": obj.getOwner()}
+            return {"name": obj.name, "owner": obj.owner}
         return JSONEncoder.default(self, obj)
 
 
@@ -358,7 +355,7 @@ class LogbookDecoder(JSONDecoder):
 class TagEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Tag):
-            return {"state": obj.getState(), "name": obj.getName()}
+            return {"state": obj.state, "name": obj.name}
         return JSONEncoder.default(self, obj)
 
 
@@ -374,20 +371,19 @@ class TagDecoder(JSONDecoder):
 
 
 class LogEntryEncoder(JSONEncoder):
-
     def default(self, obj):
         if isinstance(obj, LogEntry):
             logbooks = []
-            for logbook in obj.getLogbooks():
+            for logbook in obj.logbooks:
                 logbooks.append(LogbookEncoder().default(logbook))
             tags = []
-            for tag in obj.getTags():
+            for tag in obj.tags:
                 tags.append(TagEncoder().default(tag))
             properties = []
-            for property in obj.getProperties():
+            for property in obj.properties:
                 properties.append(PropertyEncoder().default(property))
-            return [{"description": obj.getText(),
-                     "owner": obj.getOwner(), "level": "Info",
+            return [{"description": obj.text,
+                     "owner": obj.owner, "level": "Info",
                      "logbooks": logbooks, "tags": tags,
                      "properties": properties}]
         return JSONEncoder.default(self, obj)
@@ -406,12 +402,13 @@ class LogEntryDecoder(JSONDecoder):
 
             properties = [PropertyDecoder().dictToProperty(property)
                           for property in d.pop('properties')]
+
             return LogEntry(text=d.pop('description'),
                             owner=d.pop('owner'),
                             logbooks=logbooks, tags=tags,
                             properties=properties,
                             id=d.pop('id'),
-                            createTime=d.pop('createdDate'),
-                            modifyTime=d.pop('modifiedDate'))
+                            create_time=d.pop('createdDate'),
+                            modify_time=d.pop('modifiedDate'))
         else:
             return None

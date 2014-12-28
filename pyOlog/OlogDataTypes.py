@@ -32,20 +32,28 @@ class LogEntry(object):
         :type logbooks: string, list of strings, Logbook object.
         :param tags: Tags to add to log entries
         :type tags: string, list of strings, Tag object.
+        :param attachments: attachments to add to the log entry
+        :type attachments: list of attachment objects
+        :param properties: properties to add to the log entry
+        :type properties: list of properties objects
+        :param id: numerical id of log entry
+        :type id: integer
+
+        Example:
 
         Simple LogEntry
-        >> LogEntry('test log entry', 'controls',
-                    logbooks=[Logbook('commissioning', owner='controls')])
+        >>> LogEntry('test log entry', 'controls',
+                     logbooks=[Logbook('commissioning', owner='controls')])
 
         Comprehensive logEntry
-        >> LogEntry('test log entry', 'controls',
-                    logbooks=[Logbook('commissioning', owner='controls')],
-                    tags=[Tag('TimingSystem')]
-                    properties=[Property('Ticket',
-                                attributes={'Id':'1234',
-                                'URL':'http://trac.nsls2.bnl.gov/trac/1234'}]
-                    attachments=[Attachment(open('databrowser.plt'))]
-                    )
+        >>> LogEntry('test log entry', 'controls',
+                     logbooks=[Logbook('commissioning', owner='controls')],
+                     tags=[Tag('TimingSystem')]
+                     properties=[Property('Ticket',
+                                 attributes={'Id':'1234',
+                                 'URL':'http://trac.nsls2.bnl.gov/trac/1234'}]
+                     attachments=[Attachment(open('databrowser.plt'))]
+                     )
         """
         text = ''.join(c for c in text if c in string.printable)
         self.text = text.strip()
