@@ -16,6 +16,7 @@ try:
 except ImportError:
     keyring = None
     logger.warning("No keyring module found")
+    have_keyring = False
 else:
     have_keyring = True
 
