@@ -1,10 +1,10 @@
 import logging
 import sys
 logger = logging.getLogger("pyOlog")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.CRITICAL)
 
 handler = logging.StreamHandler(sys.stderr)
-handler.setLevel(logging.DEBUG)
+handler.setLevel(logging.CRITICAL)
 
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)

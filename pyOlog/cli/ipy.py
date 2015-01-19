@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 from IPython.core.magic import Magics, magics_class, line_magic
-
 from IPython.utils.io import capture_output
 
 from .. import SimpleOlogClient
@@ -110,7 +109,9 @@ class OlogMagics(Magics):
         msg += "\n"
         with capture_output() as c:
             self.shell.run_cell(line)
+
         c.show()
+
         msg += c.stdout
         olog_client.log(msg)
 
