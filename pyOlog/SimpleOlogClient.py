@@ -25,6 +25,10 @@ def logentry_to_dict(log):
             else:
                 if any(isinstance(x, (Logbook, Tag)) for x in value):
                     value = [v.name for v in value]
+                if any(isinstance(x, Property) for x in value):
+                    value = {p.name: {n: p.attributes[n]
+                                      for n in p.attribute_names}
+                             for p in value}
                 else:
                     value = value
             rtn[name] = value
@@ -42,40 +46,105 @@ def logentry_to_dict(log):
 
 
 class SimpleOlogClient(object):
+    """
+    Client interface to Olog
+
+    This class can be used as a simple interface to the Olog
+    for creating and searching for log entries.
+
+    """
+
     def __init__(self, *args, **kwargs):
-        """Initiate a session """
+        """Initiate a session
+
+        Initiate a session to communicate with the Olog server. the `args`
+        and `kwargs` are passed onto the `OlogClient` as the initialization
+        parameters.
+
+        See Also
+        --------
+
+        OlogClient : Client interface to the Olog
+
+        """
         self.session = OlogClient(*args, **kwargs)
 
     @property
     def tags(self):
-        """Return a list of tag names in the Olog"""
+        """Return a list of tags
+
+        Returns a list of the tag names associated with the Olog
+        instance.
+
+        Returns
+        -------
+
+        list
+            Tag names as string
+        """
         return [t.name for t in self.session.list_tags()]
 
     @property
     def logbooks(self):
-        """Return a list of logbooks names in the Olog"""
+        """Return logbook names
+
+        Returns a list of logbook names associated with the
+        Olog instance.
+
+        Returns
+        -------
+
+        list
+            Logbook names as string
+        """
         return [l.name for l in self.session.list_logbooks()]
 
     @property
     def properties(self):
-        """Return a list of propertys in the Olog"""
-        return [(l.name, l.attribute_names)
-                for l in self.session.list_properties()]
+        """Return property names
+
+        Returns a list of the property names associated with the Olog
+        instance.
+
+        Returns
+        -------
+
+        dict
+            dictionary with keys as property names and attributes as
+            a list of the properties attributes
+
+        """
+        return {l.name: l.attribute_names
+                for l in self.session.list_properties()}
 
     def create_logbook(self, logbook, owner=None):
         """Create a logbook
 
-        :param logbook: Name of logbook to create
-        :param owner: Owner of logbook (defaults to default from config file)
+        Create a logbook in the current Olog instance.
+
+        Parameters
+        ----------
+        logbook : string
+            Name of logbook to create
+        owner : string, optional
+            Owner of logbook (defaults to default from config file)
+
         """
         logbook = Logbook(logbook, owner)
-        self.session.createLogbook(logbook)
+        return self.session.createLogbook(logbook)
 
     def create_tag(self, tag, active=True):
         """Create a tag
 
-        :param tag: Name of tag to create
-        :param active: State of tag
+        Create a tag in the current olog instance.
+
+        Parameters
+        ----------
+        tag : string
+            Name of tag to create
+        active : bool, optional
+            State of the tag
+
         """
 
         tag = Tag(tag, active)
@@ -84,8 +153,16 @@ class SimpleOlogClient(object):
     def create_property(self, property, keys):
         """Create a property
 
-        :param property: Name of property
-        :param keys: Name of keys associated with the property.
+        Create a property in the current olog instance.
+
+        Parameters
+        ----------
+
+        property : string
+            Name of property to create
+        keys : list of strings
+            Keys of the peoperty
+
         """
         keys_dict = dict()
         [keys_dict.update({k: ''}) for k in keys]
@@ -93,48 +170,95 @@ class SimpleOlogClient(object):
         self.session.createProperty(property)
 
     def find(self, **kwargs):
-        """Find log entries which match kwargs
+        """Find log entries
 
-        Search for logEntries based on one or many search criteria
-        >> find(search='*Timing*')
-        find logentries with the text Timing in the description
+        Find (search) for log entries based on keyword arguments.
 
-        >> find(tag='magnets')
-        find log entries with the a tag named 'magnets'
+        Parameters
+        ----------
+        id : int
+            Search for logbook with ID id.
+        search : string
+            Search logbook text for string.
+        tag : string
+            Find log entries with tags matching tag.
+        logbook : string
+            Find log entries in logbooks logbook.
+        property : string
+            Find log entries with a property matching property.
+        start : float
+            Find log entries created after time start. Time should be a
+            float of the number of seconds since the unix Epoch.
+        stop : float
+            Find log entries created before time stop. Time should be a
+            float of the number of seconds since the unix Epoch.
 
-        >> find(logbook='controls')
-        find log entries in the logbook named 'controls'
+        Returns
+        -------
+        dictionary
+            Dictionary of logbook entries matching seach criteria.
 
-        >> find(property='context')
-        find log entires with property named 'context'
+        Examples
+        --------
+        Search for the log entry with an ID 100
 
-        >> find(start=str(time.time() - 3600)
-        find the log entries made in the last hour
-        >> find(start=123243434, end=123244434)
-        find all the log entries made between the epoc times 123243434
-        and 123244434
+        >>>soc = SimpleOlogClient()
+        >>>result = soc.find(id=100)
 
-        Searching using multiple criteria
-        >>find(logbook='contorls', tag='magnets')
-        find all the log entries in logbook 'controls' AND with tag
-        named 'magnets'
+        Search for log entries with the log entry matching "Timing" which
+        were created in the last hour with a tag matchin "magnets"
+
+        >>>soc = SimpleOlogClient()
+        >>>result = soc..find(string='*Timing*', tag='magnets',
+                              start = time.time() - 3600)
+
         """
 
         results = self.session.find(**kwargs)
         return [logentry_to_dict(result) for result in results]
 
     def log(self, text=None, logbooks=None, tags=None, properties=None,
-            attachments=None, verify=True):
-        """
-        Create olog entry.
+            attachments=None, verify=True, ensure=False):
+        """ Create log entry.
 
-        :param str text: String of the olog entry to make.
-        :param logbooks: Logbooks to make entry into.
-        :type logbooks: None, List or string
-        :param tags:Tags to apply to logbook entry.
-        :type tags: None, List or string
+        Create a single log entry in the Olog instance.
+
+        Parameters
+        ----------
+        text : string
+            The body of the log entry.
+        logbooks : string or list of strings
+            The logbooks which to add the log entry to.
+        tags : string or list of strings
+            The tags to add to the log entry.
+        properties : dict of property dicts
+            The properties to add to the log entry
+        attachments : list of file like objects
+            The attachments to add to the log entry
+        verify : bool
+            Check that properties, tags and logbooks are in the Olog
+            instance.
+        ensure : bool
+            If a property, tag or logbook is not in the Olog then
+            create the property, tag or logbook before making the log
+            entry. Seting ensure to True will set verify to False.
+
+        Raises
+        ------
+
+        ValueError
+            If the property, tag or logbook does not exist and ensure is
+            True.
+
+        Returns
+        -------
+        int
+            The id of the log entry created.
 
         """
+
+        if ensure:
+            verify = False
 
         if logbooks:
             if isinstance(logbooks, basestring):
@@ -147,19 +271,37 @@ class SimpleOlogClient(object):
                 attachments = [attachments]
 
         if logbooks:
-            if verify:
-                if not any([x in logbooks for x in self.logbooks]):
-                    raise ValueError("Logbook does not exits in Olog")
+            for x in logbooks:
+                if x not in self.logbooks:
+                    if ensure:
+                        self.create_logbook(x)
+                    if verify:
+                        raise ValueError("Logbook {} does not exist in Olog"
+                                         .format(x))
+
             logbooks = [Logbook(n) for n in logbooks]
 
         if tags:
-            if verify:
-                if not any([x in tags for x in self.tags]):
-                    raise ValueError("Tag does not exits in Olog")
+            for x in tags:
+                if x not in self.tags:
+                    if ensure:
+                        self.create_tag(x)
+                    if verify:
+                        raise ValueError("Tag {} does not exist in Olog"
+                                         .format(x))
+
             tags = [Tag(n) for n in tags]
 
         if properties:
-            properties = [Property(a, b) for a, b in properties]
+            for x, y in properties.iteritems():
+                if x not in self.properties:
+                    if ensure:
+                        self.create_property(x, y.keys())
+                    if verify:
+                        raise ValueError("Property {} does not exist in Olog".
+                                         format(x))
+
+            properties = [Property(a, b) for a, b in properties.iteritems()]
 
         toattach = []
         if attachments:

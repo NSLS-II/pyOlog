@@ -89,12 +89,13 @@ class OlogClient(object):
 
         self._session = requests.Session()
         self._session.auth = _auth
-        self._session.headers.update(self.json_header)
+        # self._session.headers.update(self.json_header)
         self._session.verify = self.verify
 
     def _get(self, url, **kwargs):
         """Do an http GET request"""
         logger.debug("HTTP GET to %s", self._url + url)
+        kwargs.update({'headers': self.json_header})
         resp = self._session.get(self._url + url, **kwargs)
         resp.raise_for_status()
         return resp
@@ -102,13 +103,16 @@ class OlogClient(object):
     def _put(self, url, **kwargs):
         """Do an http put request"""
         logger.debug("HTTP PUT to %s", self._url + url)
+        kwargs.update({'headers': self.json_header})
         resp = self._session.put(self._url + url, **kwargs)
         resp.raise_for_status()
         return resp
 
-    def _post(self, url, **kwargs):
+    def _post(self, url, json=True, **kwargs):
         """Do an http post request"""
         logger.debug("HTTP POST to %s", self._url + url)
+        if json:
+            kwargs.update({'headers': self.json_header})
         resp = self._session.post(self._url + url, **kwargs)
         resp.raise_for_status()
         return resp
@@ -116,6 +120,7 @@ class OlogClient(object):
     def _delete(self, url, **kwargs):
         """Do an http delete request"""
         logger.debug("HTTP DELETE to %s", self._url + url)
+        kwargs.update({'headers': self.json_header})
         resp = self._session.delete(self._url + url, **kwargs)
         resp.raise_for_status()
         return resp
@@ -135,7 +140,8 @@ class OlogClient(object):
 
         for attachment in log_entry.attachments:
             url = "{0}/{1}".format(self.attachments_resource, id)
-            resp = self._post(url, files={'file': attachment.get_file_post()})
+            resp = self._post(url, json=False,
+                              files={'file': attachment.get_file_post()})
 
         return id
 

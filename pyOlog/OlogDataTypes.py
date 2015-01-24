@@ -219,7 +219,6 @@ class Attachment(object):
             mtype = mimetypes.guess_type(basename)[0]
             if mtype is None:
                 mtype = self.default_mime_type
-
         return (basename, self.file, mtype)
 
 
