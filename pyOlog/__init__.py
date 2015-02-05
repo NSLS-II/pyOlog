@@ -11,6 +11,6 @@ handler.setFormatter(formatter)
 
 logger.addHandler(handler)
 
-from OlogDataTypes import LogEntry, Logbook, Tag, Property, Attachment
-from OlogClient import OlogClient
-from SimpleOlogClient import SimpleOlogClient
+from .OlogDataTypes import LogEntry, Logbook, Tag, Property, Attachment
+from .OlogClient import OlogClient
+from .SimpleOlogClient import SimpleOlogClient

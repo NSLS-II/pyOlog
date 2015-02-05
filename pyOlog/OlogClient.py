@@ -6,6 +6,7 @@ Created on Jan 10, 2013
 
 @author: shroffk
 '''
+from __future__ import (print_function, absolute_import)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,6 +17,7 @@ try:
 except ImportError:
     keyring = None
     logger.warning("No keyring module found")
+    have_keyring = False
 else:
     have_keyring = True
 

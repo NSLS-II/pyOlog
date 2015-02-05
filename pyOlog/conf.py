@@ -33,8 +33,8 @@ class Config(object):
         """Initialise config object"""
         self.heading = conf
 
-        import ConfigParser
-        self.cf = ConfigParser.SafeConfigParser(defaults=self.defaults)
+        from six.moves import configparser
+        self.cf = configparser.SafeConfigParser(defaults=self.defaults)
         files = self.cf.read(self.conf_files)
 
         for f in files:

@@ -11,7 +11,7 @@ import os
 import mimetypes
 import string
 
-from conf import _conf
+from .conf import _conf
 
 
 class LogEntry(object):
