@@ -200,17 +200,18 @@ class SimpleOlogClient(object):
 
         Examples
         --------
-        Search for the log entry with an ID 100
+        Search for the log entry with an ID 100::
 
         >>>soc = SimpleOlogClient()
         >>>result = soc.find(id=100)
 
         Search for log entries with the log entry matching "Timing" which
-        were created in the last hour with a tag matchin "magnets"
+        were created in the last hour with a tag matchin "magnets"::
 
         >>>soc = SimpleOlogClient()
-        >>>result = soc..find(string='*Timing*', tag='magnets',
-                              start = time.time() - 3600)
+        >>>result = soc.find(string='*Timing*', tag='magnets',
+                             start = time.time() - 3600)
+
 
         """
 
