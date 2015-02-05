@@ -55,7 +55,10 @@ class LogEntry(object):
                      attachments=[Attachment(open('databrowser.plt'))]
                      )
         """
-        text = ''.join(c for c in text if c in string.printable)
+        if text is not None:
+            text = ''.join(c for c in text if c in string.printable)
+        else:
+            text = ''
         self.text = text.strip()
         self.owner = _conf.get_value('username', owner)
 
