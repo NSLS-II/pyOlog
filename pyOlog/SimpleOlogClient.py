@@ -3,95 +3,320 @@ __author__ = "swilkins"
 A simple API to the Olog client in python
 """
 
-import getpass
-import keyring
-
-from .utils import get_text_from_editor
 from .OlogClient import OlogClient
-from .OlogDataTypes import LogEntry, Logbook, Tag, Attachment
+from .OlogDataTypes import LogEntry, Logbook, Tag, Attachment, Property
 
-from .conf import _conf
+
+def logentry_to_dict(log):
+    rtn = dict()
+
+    lid = log.id
+    if not lid:
+        return rtn
+
+    rtn['id'] = lid
+
+    def update(name, value):
+        if value:
+            try:
+                iter(value)
+            except TypeError:
+                pass
+            else:
+                if any(isinstance(x, (Logbook, Tag)) for x in value):
+                    value = [v.name for v in value]
+                if any(isinstance(x, Property) for x in value):
+                    value = {p.name: {n: p.attributes[n]
+                                      for n in p.attribute_names}
+                             for p in value}
+                else:
+                    value = value
+            rtn[name] = value
+
+    update('create_time', log.create_time)
+    update('modify_time', log.modify_time)
+    update('text', log.text)
+    update('owner', log.owner)
+    update('logbooks', log.logbooks)
+    update('tags', log.tags)
+    update('attachments', log.attachments)
+    update('properties', log.properties)
+
+    return rtn
+
 
 class SimpleOlogClient(object):
-  def __init__(self, url = None, username = None, password = None):
-    """Initiate a session and do password caching using keyring"""
-
-    # First check config file for defaults
-
-
-    if username is None:
-      if _conf.getValue('username'):
-        username = _conf.getValue('username')
-      else:
-        username = getpass.getuser()
-
-    if password is None:
-      if _conf.getValue('password'):
-        password = _conf.getValue('password')
-      if password is None:
-        password = keyring.get_password('olog', username)
-      if password is None:
-        password = getpass.getpass("Olog Password (username = {}) :".format(username))
-
-    if username and not password:
-      raise Exception("Unable to obtain password and authentication requested.")
-    self.session = OlogClient(username = username, password = password)
-
-  def getTags(self):
-    """Return a list of tag names in the Olog"""
-    return [t.getName() for t in self.session.listTags()]
-
-  def getLogbooks(self):
-    """Return a list of tag names in the Olog"""
-    return [l.getName() for l in self.session.listLogbooks()]
-
-  def log(self, text = None, logbooks = None, tags = None, properties = None,
-                attachments = None, verify = True):
     """
-    Create olog entry.
+    Client interface to Olog
 
-    :param str text: String of the olog entry to make.
-    :param logbooks: Logbooks to make entry into.
-    :type logbooks: None, List or string
-    :param tags:Tags to apply to logbook entry.
-    :type tags: None, List or string
+    This class can be used as a simple interface to the Olog
+    for creating and searching for log entries.
 
     """
 
-    if logbooks:
-      if not isinstance(logbooks, list):
-        logbooks = [logbooks]
-    if tags:
-      if not isinstance(tags, list):
-        tags = [tags]
-    if attachments:
-      if not isinstance(attachments, list):
-        attachments = [attachments]
+    def __init__(self, *args, **kwargs):
+        """Initiate a session
 
-    if logbooks:
-      if verify:
-        if not any([x in logbooks for x in self.getLogbooks()]):
-          raise ValueError("Invalid Logbook name (not in Olog)")
-      logbooks = [Logbook(n) for n in logbooks]
+        Initiate a session to communicate with the Olog server. the `args`
+        and `kwargs` are passed onto the `OlogClient` as the initialization
+        parameters.
 
-    if tags:
-      if verify:
-        if not any([x in tags for x in self.getTags()]):
-          raise ValueError("Invalid Tag (not in Olog)")
-      tags     = [Tag(n) for n in tags]
+        See Also
+        --------
 
-    if not text:
-      text = get_text_from_editor()
+        OlogClient : Client interface to the Olog
 
-    toattach = []
-    if attachments:
-      for a in attachments:
-        if  isinstance(a, Attachment):
-          toattach.append(a)
-        else:
-          toattach.append(Attachment(open(a)))
+        """
+        self.session = OlogClient(*args, **kwargs)
 
-    log = LogEntry(text, logbooks = logbooks,
-                   tags = tags, attachments = toattach)
-    self.session.log(log)
+    @property
+    def tags(self):
+        """Return a list of tags
 
+        Returns a list of the tag names associated with the Olog
+        instance.
+
+        Returns
+        -------
+
+        list
+            Tag names as string
+        """
+        return [t.name for t in self.session.list_tags()]
+
+    @property
+    def logbooks(self):
+        """Return logbook names
+
+        Returns a list of logbook names associated with the
+        Olog instance.
+
+        Returns
+        -------
+
+        list
+            Logbook names as string
+        """
+        return [l.name for l in self.session.list_logbooks()]
+
+    @property
+    def properties(self):
+        """Return property names
+
+        Returns a list of the property names associated with the Olog
+        instance.
+
+        Returns
+        -------
+
+        dict
+            dictionary with keys as property names and attributes as
+            a list of the properties attributes
+
+        """
+        return {l.name: l.attribute_names
+                for l in self.session.list_properties()}
+
+    def create_logbook(self, logbook, owner=None):
+        """Create a logbook
+
+        Create a logbook in the current Olog instance.
+
+        Parameters
+        ----------
+        logbook : string
+            Name of logbook to create
+        owner : string, optional
+            Owner of logbook (defaults to default from config file)
+
+        """
+        logbook = Logbook(logbook, owner)
+        return self.session.createLogbook(logbook)
+
+    def create_tag(self, tag, active=True):
+        """Create a tag
+
+        Create a tag in the current olog instance.
+
+        Parameters
+        ----------
+        tag : string
+            Name of tag to create
+        active : bool, optional
+            State of the tag
+
+        """
+
+        tag = Tag(tag, active)
+        self.session.createTag(tag)
+
+    def create_property(self, property, keys):
+        """Create a property
+
+        Create a property in the current olog instance.
+
+        Parameters
+        ----------
+
+        property : string
+            Name of property to create
+        keys : list of strings
+            Keys of the peoperty
+
+        """
+        keys_dict = dict()
+        [keys_dict.update({k: ''}) for k in keys]
+        property = Property(property, keys_dict)
+        self.session.createProperty(property)
+
+    def find(self, **kwargs):
+        """Find log entries
+
+        Find (search) for log entries based on keyword arguments.
+
+        Parameters
+        ----------
+        id : int
+            Search for logbook with ID id.
+        search : string
+            Search logbook text for string.
+        tag : string
+            Find log entries with tags matching tag.
+        logbook : string
+            Find log entries in logbooks logbook.
+        property : string
+            Find log entries with a property matching property.
+        start : float
+            Find log entries created after time start. Time should be a
+            float of the number of seconds since the unix Epoch.
+        stop : float
+            Find log entries created before time stop. Time should be a
+            float of the number of seconds since the unix Epoch.
+
+        Returns
+        -------
+        dictionary
+            Dictionary of logbook entries matching seach criteria.
+
+        Examples
+        --------
+        Search for the log entry with an ID 100::
+
+        >>>soc = SimpleOlogClient()
+        >>>result = soc.find(id=100)
+
+        Search for log entries with the log entry matching "Timing" which
+        were created in the last hour with a tag matchin "magnets"::
+
+        >>>soc = SimpleOlogClient()
+        >>>result = soc.find(string='*Timing*', tag='magnets',
+                             start = time.time() - 3600)
+
+
+        """
+
+        results = self.session.find(**kwargs)
+        return [logentry_to_dict(result) for result in results]
+
+    def log(self, text=None, logbooks=None, tags=None, properties=None,
+            attachments=None, verify=True, ensure=False):
+        """ Create log entry.
+
+        Create a single log entry in the Olog instance.
+
+        Parameters
+        ----------
+        text : string
+            The body of the log entry.
+        logbooks : string or list of strings
+            The logbooks which to add the log entry to.
+        tags : string or list of strings
+            The tags to add to the log entry.
+        properties : dict of property dicts
+            The properties to add to the log entry
+        attachments : list of file like objects
+            The attachments to add to the log entry
+        verify : bool
+            Check that properties, tags and logbooks are in the Olog
+            instance.
+        ensure : bool
+            If a property, tag or logbook is not in the Olog then
+            create the property, tag or logbook before making the log
+            entry. Seting ensure to True will set verify to False.
+
+        Raises
+        ------
+
+        ValueError
+            If the property, tag or logbook does not exist and ensure is
+            True.
+
+        Returns
+        -------
+        int
+            The id of the log entry created.
+
+        """
+
+        if ensure:
+            verify = False
+
+        if logbooks:
+            if isinstance(logbooks, basestring):
+                logbooks = [logbooks]
+        if tags:
+            if isinstance(tags, basestring):
+                tags = [tags]
+        if attachments:
+            if isinstance(attachments, (Attachment, file)):
+                attachments = [attachments]
+
+        if logbooks:
+            for x in logbooks:
+                if x not in self.logbooks:
+                    if ensure:
+                        self.create_logbook(x)
+                    if verify:
+                        raise ValueError("Logbook {} does not exist in Olog"
+                                         .format(x))
+
+            logbooks = [Logbook(n) for n in logbooks]
+
+        if tags:
+            for x in tags:
+                if x not in self.tags:
+                    if ensure:
+                        self.create_tag(x)
+                    if verify:
+                        raise ValueError("Tag {} does not exist in Olog"
+                                         .format(x))
+
+            tags = [Tag(n) for n in tags]
+
+        if properties:
+            for x, y in properties.iteritems():
+                if x not in self.properties:
+                    if ensure:
+                        self.create_property(x, y.keys())
+                    if verify:
+                        raise ValueError("Property {} does not exist in Olog".
+                                         format(x))
+
+            properties = [Property(a, b) for a, b in properties.iteritems()]
+
+        toattach = []
+        if attachments:
+            for a in attachments:
+                if isinstance(a, Attachment):
+                    toattach.append(a)
+                elif isinstance(a, file):
+                    toattach.append(Attachment(a))
+                else:
+                    raise ValueError("Attachments must be file objects or \
+                                     Olog Attachment objects")
+
+        log = LogEntry(text, logbooks=logbooks,
+                       tags=tags, properties=properties,
+                       attachments=toattach)
+
+        return self.session.log(log)
