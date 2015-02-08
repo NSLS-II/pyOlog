@@ -14,7 +14,7 @@ setup(name='pyOlog',
       description='Python Olog Client Lib',
       author='Kunal Shroff',
       author_email='shroffk@bnl.gov',
-      packages=['pyOlog'],
+      packages=['pyOlog', 'pyOlog.cli'],
       requires=['requests (>=2.0.0)', 'urllib3 (>=1.7.1)'],
       entry_points={'console_scripts': [
                     'olog = pyOlog.cli:main'],
