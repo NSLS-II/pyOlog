@@ -297,7 +297,7 @@ class SimpleOlogClient(object):
             tags = [Tag(n) for n in tags]
 
         if properties:
-            for x, y in properties.iteritems():
+            for x, y in properties.items():
                 if x not in self.properties:
                     if ensure:
                         self.create_property(x, y.keys())
@@ -305,7 +305,7 @@ class SimpleOlogClient(object):
                         raise ValueError("Property {} does not exist in Olog".
                                          format(x))
 
-            properties = [Property(a, b) for a, b in properties.iteritems()]
+            properties = [Property(a, b) for a, b in properties.items()]
 
         toattach = []
         if attachments:
