@@ -324,7 +324,7 @@ class PropertyEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Property):
             attributes = dict()
-            for key, value in obj.attributes.iteritems():
+            for key, value in obj.attributes.items():
                 attributes[str(key)] = value
             prop = OrderedDict()
             prop["name"] = obj.name
