@@ -50,7 +50,7 @@ def get_screenshot(root=False, itype='png'):
 
 def get_text_from_editor(prepend=None, postpend=None):
     """Open text editor and return text"""
-    with tempfile.NamedTemporaryFile(suffix='.tmp') as f:
+    with tempfile.NamedTemporaryFile(suffix='.tmp', mode='w+t') as f:
         # Write out the file and flush
 
         message = ''
