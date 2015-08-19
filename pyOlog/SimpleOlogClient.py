@@ -1,8 +1,11 @@
+from __future__ import (print_function, absolute_import)
 __author__ = "swilkins"
 """
 A simple API to the Olog client in python
 """
 
+import io
+import six
 from .OlogClient import OlogClient
 from .OlogDataTypes import LogEntry, Logbook, Tag, Attachment, Property
 
@@ -262,13 +265,13 @@ class SimpleOlogClient(object):
             verify = False
 
         if logbooks:
-            if isinstance(logbooks, basestring):
+            if isinstance(logbooks, six.string_types):
                 logbooks = [logbooks]
         if tags:
-            if isinstance(tags, basestring):
+            if isinstance(tags, six.string_types):
                 tags = [tags]
         if attachments:
-            if isinstance(attachments, (Attachment, file)):
+            if isinstance(attachments, (Attachment, io.IOBase)):
                 attachments = [attachments]
 
         if logbooks:
@@ -294,7 +297,7 @@ class SimpleOlogClient(object):
             tags = [Tag(n) for n in tags]
 
         if properties:
-            for x, y in properties.iteritems():
+            for x, y in properties.items():
                 if x not in self.properties:
                     if ensure:
                         self.create_property(x, y.keys())
@@ -302,14 +305,14 @@ class SimpleOlogClient(object):
                         raise ValueError("Property {} does not exist in Olog".
                                          format(x))
 
-            properties = [Property(a, b) for a, b in properties.iteritems()]
+            properties = [Property(a, b) for a, b in properties.items()]
 
         toattach = []
         if attachments:
             for a in attachments:
                 if isinstance(a, Attachment):
                     toattach.append(a)
-                elif isinstance(a, file):
+                elif isinstance(a, io.IOBase):
                     toattach.append(Attachment(a))
                 else:
                     raise ValueError("Attachments must be file objects or \
