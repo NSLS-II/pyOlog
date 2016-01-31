@@ -65,7 +65,7 @@ def olog_grab(root=False, **kwargs):
     try:
         a = get_screenshot(root)
     except KeyboardInterrupt:
-        print("Canceled, not entry created")
+        print("Canceled, no entry created")
         return
 
     if 'attachments' in kwargs:
