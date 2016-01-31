@@ -62,7 +62,12 @@ def olog_grab(root=False, **kwargs):
     """
     if not root:
         print("Select area of screen to grab .........")
-    a = get_screenshot(root)
+    try:
+        a = get_screenshot(root)
+    except KeyboardInterrupt:
+        print("Canceled, not entry created")
+        return
+
     if 'attachments' in kwargs:
         if isinstance(kwargs['attachments'], list):
             kwargs['attachments'].append(a)
