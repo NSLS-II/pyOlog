@@ -94,28 +94,28 @@ class OlogClient(object):
         # self._session.headers.update(self.json_header)
         self._session.verify = self.verify
 
-    def _get(self, url, **kwargs):
+    def _get(self, url, timeout=(4.2, 30), **kwargs):
         """Do an http GET request"""
         logger.debug("HTTP GET to %s", self._url + url)
         kwargs.update({'headers': self.json_header})
-        resp = self._session.get(self._url + url, **kwargs)
+        resp = self._session.get(self._url + url, timeout=timeout, stream=False, **kwargs)
         resp.raise_for_status()
         return resp
 
-    def _put(self, url, **kwargs):
+    def _put(self, url,timeout=(4.2, 30), **kwargs):
         """Do an http put request"""
         logger.debug("HTTP PUT to %s", self._url + url)
         kwargs.update({'headers': self.json_header})
-        resp = self._session.put(self._url + url, **kwargs)
+        resp = self._session.put(self._url + url, timeout=timeout, stream=False, **kwargs)
         resp.raise_for_status()
         return resp
 
-    def _post(self, url, json=True, **kwargs):
+    def _post(self, url, timeout=(4.2, 30), json=True, **kwargs):
         """Do an http post request"""
         logger.debug("HTTP POST to %s", self._url + url)
         if json:
             kwargs.update({'headers': self.json_header})
-        resp = self._session.post(self._url + url, **kwargs)
+        resp = self._session.post(self._url + url, timeout=timeout, stream=False, **kwargs)
         resp.raise_for_status()
         return resp
 
