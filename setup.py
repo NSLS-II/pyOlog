@@ -10,7 +10,7 @@ Created on Jan 10, 2013
 from setuptools import setup
 
 setup(name='pyOlog',
-      version='0.3.0',
+      version='4.0.2',
       description='Python Olog Client Lib',
       author='Kunal Shroff',
       author_email='shroffk@bnl.gov',
