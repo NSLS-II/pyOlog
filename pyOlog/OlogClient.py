@@ -300,20 +300,20 @@ class OlogClient(object):
             self._delete(url)
 
         elif 'tagName' in kwds:
-            url = "/".join((self.logbooks_resource,
+            url = "/".join((self.tags_resource,
                            kwds['tagName'].strip()))
             self._delete(url)
 
         elif 'propertyName' in kwds:
-            url = "/".join((self.logbooks_resource,
+            url = "/".join((self.properties_resource,
                            kwds['propertyName'].strip()))
             data = PropertyEncoder().encode(Property(
                 kwds['propertyName'].strip()))
             self._delete(url, data=data)
 
         elif 'logEntryId' in kwds:
-            url = "/".join((self.logbooks_resource,
-                           kwds['logEntryId'].strip()))
+            url = "/".join((self.logs_resource,
+                           str(kwds['logEntryId'])))
             self._delete(url)
 
         else:
