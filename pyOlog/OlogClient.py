@@ -30,6 +30,7 @@ urllib3.disable_warnings()
 
 from json import JSONEncoder, JSONDecoder
 from collections import OrderedDict
+import json
 
 from .OlogDataTypes import LogEntry, Logbook, Tag, Property, Attachment
 from .conf import _conf
@@ -146,6 +147,23 @@ class OlogClient(object):
                               files={'file': attachment.get_file_post()})
 
         return id
+    
+    def updateLog(self, logId, log_entry):
+        '''
+        Update a log entry 
+        
+        :param logId: The id of the log to be updated/modified
+        :param log_entry: An instance of the modified version of the LogEntry
+        '''
+        url = "{0}/{1}".format(self.logs_resource, str(logId))
+        resp = self._post(url, data=json.dumps(json.loads(LogEntryEncoder().encode(log_entry))[0]))
+        
+        '''Attachments'''
+        for attachment in log_entry.attachments:
+            resp = self._post(url,
+                              json=False, 
+                              files={'file': attachment.getFilePost()})        
+        
 
     def createLogbook(self, logbook):
         '''
