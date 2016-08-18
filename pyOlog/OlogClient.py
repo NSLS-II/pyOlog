@@ -1,9 +1,7 @@
 '''
 Copyright (c) 2010 Brookhaven National Laboratory
 All rights reserved. Use is subject to license terms and conditions.
-
 Created on Jan 10, 2013
-
 @author: shroffk
 '''
 from __future__ import (print_function, absolute_import)
@@ -36,6 +34,7 @@ from .OlogDataTypes import LogEntry, Logbook, Tag, Property, Attachment
 from .conf import _conf
 
 
+
 class OlogClient(object):
     json_header = {'content-type': 'application/json',
                    'accept': 'application/json'}
@@ -48,18 +47,14 @@ class OlogClient(object):
     def __init__(self, url=None, username=None, password=None, ask=True):
         '''
         Initialize OlogClient and configure session
-
         :param url: The base URL of the Olog glassfish server.
         :param username: The username for authentication.
         :param password: The password for authentication.
-
         If :param username: is None, then the username will be read
         from the config file. If no :param username: is avaliable then
         the session is opened without authentication.
-
         If  :param ask: is True, then the olog will try using both
         the keyring module and askpass to get a password.
-
         '''
         self._url = _conf.get_value('url', url)
         self.verify = False
@@ -131,9 +126,7 @@ class OlogClient(object):
     def log(self, log_entry):
         '''
         Create a log entry
-
         :param log_entry: An instance of LogEntry to add to the Olog
-
         '''
         resp = self._post(self.logs_resource,
                           data=LogEntryEncoder().encode(log_entry))
@@ -160,15 +153,15 @@ class OlogClient(object):
         
         '''Attachments'''
         for attachment in log_entry.attachments:
+            url = "{0}/{1}".format(self.attachments_resource, str(logId))
             resp = self._post(url,
                               json=False, 
-                              files={'file': attachment.getFilePost()})        
-        
+                              #files={'file': attachment.getFilePost()})        
+                             files={'file': attachment.get_file_post()})        
 
     def createLogbook(self, logbook):
         '''
         Create a Logbook
-
         :param logbook: An instance of Logbook to create in the Olog.
         '''
         url = "/".join((self.logbooks_resource, logbook.name))
@@ -177,7 +170,6 @@ class OlogClient(object):
     def createTag(self, tag):
         '''
         Create a Tag
-
         :param tag: An instance of Tag to create in the Olog.
         '''
         url = "/".join((self.tags_resource, tag.name))
@@ -186,7 +178,6 @@ class OlogClient(object):
     def createProperty(self, property):
         '''
         Create a Property
-
         :param property: An instance of Property to create in the Olog.
         '''
         url = "/".join((self.properties_resource, property.name))
@@ -198,22 +189,17 @@ class OlogClient(object):
         Search for logEntries based on one or many search criteria
         >> find(search='*Timing*')
         find logentries with the text Timing in the description
-
         >> find(tag='magnets')
         find log entries with the a tag named 'magnets'
-
         >> find(logbook='controls')
         find log entries in the logbook named 'controls'
-
         >> find(property='context')
         find log entires with property named 'context'
-
         >> find(start=time.time() - 3600)
         find the log entries made in the last hour
         >> find(start=123243434, end=123244434)
         find all the log entries made between the epoc times 123243434
         and 123244434
-
         Searching using multiple criteria
         >>find(logbook='contorls', tag='magnets')
         find all the log entries in logbook 'controls' AND with tag
@@ -230,7 +216,6 @@ class OlogClient(object):
     def list_attachments(self, log_entry_id):
         '''
         Search for attachments on a logentry
-
         :param log_entry_id: The ID of the log entry to list the attachments.
         '''
         url = "{0}/{1}".format(self.attachments_resource, log_entry_id)
@@ -282,25 +267,19 @@ class OlogClient(object):
     def delete(self, **kwds):
         '''
         Method to delete a logEntry, logbook, property, tag.
-
         :param logEntryId: ID of log entry to delete.
         :param logbookName: The name (as a string) of the logbook to delete.
         :param tagName: The name (as a string) of the tag to delete.
         :param propertyName: The name (as a string) of the property to delete.
-
         Example:
-
         delete(logEntryId = int)
         >>> delete(logEntryId=1234)
-
         delete(logbookName = String)
         >>> delete(logbookName = 'logbookName')
-
         delete(tagName = String)
         >>> delete(tagName = 'myTag')
         # tagName = tag name of the tag to be deleted
         (it will be removed from all logEntries)
-
         delete(propertyName = String)
         >>> delete(propertyName = 'position')
         # propertyName = property name of property to be deleted
@@ -442,3 +421,5 @@ class LogEntryDecoder(JSONDecoder):
                             modify_time=d.pop('modifiedDate'))
         else:
             return None
+
+
