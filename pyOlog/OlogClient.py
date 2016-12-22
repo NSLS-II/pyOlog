@@ -140,24 +140,23 @@ class OlogClient(object):
                               files={'file': attachment.get_file_post()})
 
         return id
-    
+
     def updateLog(self, logId, log_entry):
         '''
-        Update a log entry 
-        
+        Update a log entry
+
         :param logId: The id of the log to be updated/modified
         :param log_entry: An instance of the modified version of the LogEntry
         '''
         url = "{0}/{1}".format(self.logs_resource, str(logId))
         resp = self._post(url, data=json.dumps(json.loads(LogEntryEncoder().encode(log_entry))[0]))
-        
+
         '''Attachments'''
         for attachment in log_entry.attachments:
             url = "{0}/{1}".format(self.attachments_resource, str(logId))
             resp = self._post(url,
-                              json=False, 
-                              #files={'file': attachment.getFilePost()})        
-                             files={'file': attachment.get_file_post()})        
+                              json=False,
+                              files={'file': attachment.get_file_post()})
 
     def createLogbook(self, logbook):
         '''
@@ -421,5 +420,3 @@ class LogEntryDecoder(JSONDecoder):
                             modify_time=d.pop('modifiedDate'))
         else:
             return None
-
-
