@@ -301,8 +301,8 @@ class SimpleOlogClient(object):
                                       attachments, verify, ensure)
         return self.session.updateLog(log_id, log_entry)
 
-    def _build_entry(text, logbooks, tags, properties, attachments, verify,
-            ensure):
+    def _build_entry(self, text, logbooks, tags, properties, attachments,
+                     verify, ensure):
         """
         Common input validation used by methods log and update.
 
