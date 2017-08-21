@@ -260,54 +260,7 @@ class SimpleOlogClient(object):
             The id of the log entry created.
 
         """
-        log_entry = self._build_entry(text, logbooks, tags, properties,
-                                      attachments, verify, ensure)
-        return self.session.log(log_entry)
 
-    def update(self, log_id, text=None, logbooks=None, tags=None,
-               properties=None, attachments=None, verify=True, ensure=False):
-        """Update an existing log entry. This OVERWRITES; it does not append.
-
-        Parameters
-        ----------
-        log_id : int
-            The ID of the log entry to be updated.
-        text : string
-            The body of the log entry.
-        logbooks : string or list of strings
-            The logbooks which to add the log entry to.
-        tags : string or list of strings
-            The tags to add to the log entry.
-        properties : dict of property dicts
-            The properties to add to the log entry
-        attachments : list of file like objects
-            The attachments to add to the log entry
-        verify : bool
-            Check that properties, tags and logbooks are in the Olog
-            instance.
-        ensure : bool
-            If a property, tag or logbook is not in the Olog then
-            create the property, tag or logbook before making the log
-            entry. Seting ensure to True will set verify to False.
-
-        Raises
-        ------
-
-        ValueError
-            If the property, tag or logbook does not exist and ensure is
-            True.
-        """
-        log_entry = self._build_entry(text, logbooks, tags, properties,
-                                      attachments, verify, ensure)
-        return self.session.updateLog(log_id, log_entry)
-
-    def _build_entry(text, logbooks, tags, properties, attachments, verify,
-            ensure):
-        """
-        Common input validation used by methods log and update.
-
-        See docstrings for log or update for details about parameters.
-        """
         if ensure:
             verify = False
 
@@ -365,7 +318,8 @@ class SimpleOlogClient(object):
                     raise ValueError("Attachments must be file objects or \
                                      Olog Attachment objects")
 
-        log_entry = LogEntry(text, logbooks=logbooks,
-                             tags=tags, properties=properties,
-                             attachments=toattach)
-        return log_entry
+        log = LogEntry(text, logbooks=logbooks,
+                       tags=tags, properties=properties,
+                       attachments=toattach)
+
+        return self.session.log(log)
