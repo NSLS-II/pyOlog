@@ -163,6 +163,181 @@ def ensure(*ensure_args):
         return wrapper
     return wrap
 
+def log_pos(positioners=None, extra_msg=None):
+    """Get the current position of Positioners and make a logbook entry.
+    Print to the screen the position of the positioners and make a logbook text
+    entry. This routine also creates session information in the logbook so
+    positions can be recovered.
+    Parameters
+    ----------
+    positioners : Positioner, list of Positioners or None
+    Returns
+    -------
+    int
+        The ID of the logbook entry returned by the logbook.log method.
+    """
+    positioners = _normalize_positioners(positioners)
+    logbook = get_logbook()
+    if extra_msg:
+        msg = extra_msg + '\n'
+    else:
+        msg = ''
+
+    with closing(StringIO()) as sio:
+        _print_pos(positioners, file=sio)
+        msg += sio.getvalue()
+
+    # Add the text representation of the positioners
+
+    # Create the property for storing motor posisions
+    pdict = {}
+    pdict['values'] = {}
+
+    msg += logbook_add_objects(positioners)
+
+    for p in positioners:
+        try:
+            pdict['values'][p.name] = p.position
+        except DisconnectedError:
+            pdict['values'][p.name] = DISCONNECTED
+
+    pdict['objects'] = repr(positioners)
+    pdict['values'] = repr(pdict['values'])
+
+    if logbook:
+        id_ = logbook.log(msg, properties={'OphydPositioners': pdict},
+                          ensure=True)
+
+        print('Logbook positions added as Logbook ID {}'.format(id_))
+        return id_
+
+
+def log_pos_mov(id=None, dry_run=False, positioners=None, **kwargs):
+    """Move to positions located in logboook
+    This function moves to positions recorded in the experimental logbook using
+    the :py:func:`log_pos` function.
+    Parameters
+    ----------
+    id : integer, optional
+        ID of logbook entry to search for and move positions to.
+    dry_run : bool, optional
+        If True, do not move motors, but execute a dry_run
+    positioners : list, optional
+        List of string names of positioners to compare and move. Other
+        positioners in the log entry will be ignored.
+    """
+    positioners = _normalize_positioners(positioners)
+    logpos, objects = logbook_to_objects(id, **kwargs)
+    objects = collections.OrderedDict(sorted(objects.items()))
+
+    keys = set(positioners).intersection(set(objects.keys()))
+    objects = {x: objects[x] for x in keys}
+
+    print('')
+    stat = []
+    for key, value in objects.items():
+        newpos = logpos[key]
+        if newpos == DISCONNECTED:
+            print('{}[!!] Unable to move positioner {} {}: position was stored'
+                  'as disconnected'.format(tc.Red, key, tc.Normal))
+            continue
+
+        try:
+            oldpos = value.position
+        except DisconnectedError:
+            print('{}[!!] Unable to move positioner {} {}: disconnected'
+                  ''.format(tc.Red, key, tc.Normal))
+            continue
+
+        try:
+            if not dry_run:
+                stat.append(value.move(newpos, wait=False))
+        except Exception as ex:
+            print('{}[!!] Unable to move positioner {} {} ({}: {})'
+                  ''.format(tc.Red, key, tc.Normal, ex.__class__.__name__, ex))
+        else:
+            print('{}[**] Moving positioner {} to {}'
+                  ' from current position of {}{}`'
+                  ''.format(tc.Green, key, newpos, oldpos, tc.Normal))
+
+    print('\n{}Waiting for positioners to complete .....'
+          ''.format(tc.LightGreen), end='')
+
+    sys.stdout.flush()
+
+    if len(stat) > 0:
+        while all(s.done for s in stat):
+            time.sleep(0.01)
+
+    print(' Done{}\n'.format(tc.Normal))
+
+
+def log_pos_diff(id=None, positioners=None, **kwargs):
+    """Move to positions located in logboook
+    This function compares positions recorded in the experimental logbook
+    using the :py:func:`log_pos` function.
+    Parameters
+    ----------
+    id : integer
+        ID of logbook entry to search for and move positions to.
+    positioners : list
+        List of string names of positioners to compare. Other positioners
+        in the log entry will be ignored.
+    """
+
+    positioners = _normalize_positioners(positioners)
+    logpos, objects = logbook_to_objects(id, **kwargs)
+    objects = collections.OrderedDict(sorted(objects.items()))
+
+    # Cycle through positioners and compare position with old value
+    # If we have an error, print a warning
+
+    diff = []
+    pos = []
+    values = []
+
+    keys = set(positioners).intersection(set(objects.keys()))
+    objects = {x: objects[x] for x in keys}
+
+    print('')
+    for key, value in objects.items():
+        oldpos = logpos[key]
+        if oldpos == DISCONNECTED:
+            print('{}[!!] Unable to compare position {} {}: position was stored'
+                  'as disconnected'.format(tc.Red, key, tc.Normal))
+            continue
+
+        try:
+            newpos = value.position
+        except DisconnectedError:
+            print('{}[!!] Unable to compare position {} {}: disconnected'
+                  ''.format(tc.Red, key, tc.Normal))
+            continue
+
+        try:
+            diff.append(newpos - oldpos)
+        except Exception as ex:
+            print('{}[!!] Unable to compare position {}{}: ({}: {})'
+                  .format(tc.Red, key, tc.Normal, ex.__class__.__name__, ex))
+        else:
+            pos.append(value)
+            values.append(newpos)
+
+    header_len = 3 * (FMT_LEN + 3) + 1
+    print_header(len=header_len)
+    print_string('Positioner', pre='| ', post=' | ')
+    print_string('Value', post=' | ')
+    print_string('Difference', post=' |\n')
+
+    print_header(len=header_len)
+
+    for p, v, d in zip(pos, values, diff):
+        print_string(p.name, pre='| ', post=' | ')
+        print_value(v, egu=p.egu, post=' | ')
+        print_value(d, egu=p.egu, post=' |\n')
+
+    print_header(len=header_len)
+    print('')
 
 def logbook_to_objects(id=None, **kwargs):
     """Search the logbook and return positioners"""
