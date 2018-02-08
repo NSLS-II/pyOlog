@@ -130,7 +130,7 @@ class OlogClient(object):
         '''
         resp = self._post(self.logs_resource,
                           data=LogEntryEncoder().encode(log_entry))
-        id = LogEntryDecoder().dictToLogEntry(resp.json()[0]).id
+        id = LogEntryDecoder().dictToLogEntry(resp.json()['log'][0]).id
 
         # Handle attachments
 
