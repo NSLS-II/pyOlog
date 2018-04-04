@@ -445,14 +445,13 @@ def _print_pos(positioners, file=sys.stdout):
         if pos is None:
             continue
         if v is not None:
-           if isinstance(v,'float'):
-                try:
-                    prec = p.precision
-                except (AttributeError, DisconnectedError):
-                    prec = FMT_PREC
+            try:
                 value = np.round(v, decimals=prec)
-            else:
+            except TypeError:
                 value = v
+            except (AttributeError,DisconnectedError):
+                value = np.round(v, decimals=FMT_PREC)
+
         else:
             value = DISCONNECTED
 
