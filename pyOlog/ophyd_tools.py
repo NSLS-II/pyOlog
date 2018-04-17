@@ -199,7 +199,7 @@ def log_pos(positioners=None, extra_msg=None):
        try:
            prec = p.precision
        except (AttributeError, DisconnectedError):
-           prec = FMT_PERC
+           prec = FMT_PREC
 
        try:
            value = np.round(v, decimals=prec)
