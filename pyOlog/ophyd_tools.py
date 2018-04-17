@@ -195,14 +195,14 @@ def log_pos(positioners=None, extra_msg=None):
 
     msg += logbook_add_objects(positioners)
 
-       for p in positioners:
+    for p in positioners:
         try:
             pdict['values'][p.name] = p.position
         except DisconnectedError:
             pdict['values'][p.name] = DISCONNECTED
 
-        pdict['objects'] = repr(positioners)
-        pdict['values'] = repr(pdict['values'])
+    pdict['objects'] = repr(positioners)
+    pdict['values'] = repr(pdict['values'])
 
     if logbook:
         id_ = logbook.log(msg, properties={'OphydPositioners': pdict},
