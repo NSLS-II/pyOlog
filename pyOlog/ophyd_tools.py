@@ -195,19 +195,14 @@ def log_pos(positioners=None, extra_msg=None):
 
     msg += logbook_add_objects(positioners)
 
-    for p in positioners:
-       try:
-           prec = p.precision
-       except (AttributeError, DisconnectedError):
-           prec = FMT_PREC
+       for p in positioners:
+        try:
+            pdict['values'][p.name] = p.position
+        except DisconnectedError:
+            pdict['values'][p.name] = DISCONNECTED
 
-       try:
-           value = np.round(v, decimals=prec)
-       except TypeError:
-           value = v
-
-    pdict['objects'] = repr(positioners)
-    pdict['values'] = repr(pdict['values'])
+        pdict['objects'] = repr(positioners)
+        pdict['values'] = repr(pdict['values'])
 
     if logbook:
         id_ = logbook.log(msg, properties={'OphydPositioners': pdict},
@@ -451,11 +446,14 @@ def _print_pos(positioners, file=sys.stdout):
             continue
         if v is not None:
             try:
+                perc = p.precision
+            except (AttributeError, DisconnectedError):
+                perc = FMT_PERC
+
+            try:
                 value = np.round(v, decimals=prec)
             except TypeError:
                 value = v
-            except (AttributeError,DisconnectedError):
-                value = np.round(v, decimals=FMT_PREC)
 
         else:
             value = DISCONNECTED
