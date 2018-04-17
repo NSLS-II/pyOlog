@@ -446,9 +446,9 @@ def _print_pos(positioners, file=sys.stdout):
             continue
         if v is not None:
             try:
-                perc = p.precision
+                prec = p.precision
             except (AttributeError, DisconnectedError):
-                perc = FMT_PERC
+                prec = FMT_PERC
 
             try:
                 value = np.round(v, decimals=prec)
