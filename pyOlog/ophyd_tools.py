@@ -196,10 +196,15 @@ def log_pos(positioners=None, extra_msg=None):
     msg += logbook_add_objects(positioners)
 
     for p in positioners:
-        try:
-            pdict['values'][p.name] = p.position
-        except DisconnectedError:
-            pdict['values'][p.name] = DISCONNECTED
+       try:
+           perc = p.precision
+       except (AttributeError, DisconnectedError):
+           perc = FMT_PERC
+
+       try:
+           value = np.round(v, decimals=prec)
+       except TypeError:
+           value = v
 
     pdict['objects'] = repr(positioners)
     pdict['values'] = repr(pdict['values'])
