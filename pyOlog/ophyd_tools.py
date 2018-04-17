@@ -197,9 +197,9 @@ def log_pos(positioners=None, extra_msg=None):
 
     for p in positioners:
        try:
-           perc = p.precision
+           prec = p.precision
        except (AttributeError, DisconnectedError):
-           perc = FMT_PERC
+           prec = FMT_PERC
 
        try:
            value = np.round(v, decimals=prec)
