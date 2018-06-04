@@ -448,7 +448,7 @@ def _print_pos(positioners, file=sys.stdout):
             try:
                 prec = p.precision
             except (AttributeError, DisconnectedError):
-                prec = FMT_PERC
+                prec = FMT_PREC
 
             try:
                 value = np.round(v, decimals=prec)
