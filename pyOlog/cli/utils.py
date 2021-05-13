@@ -34,7 +34,7 @@ def save_pyplot_figure(**kwargs):
     return a
 
 
-def get_screenshot(root=False, itype='png'):
+def _get_screenshot(root=False, itype='png'):
     """Open ImageMagick and get screngrab as png."""
     if root:
         opts = '-window root'
@@ -42,9 +42,17 @@ def get_screenshot(root=False, itype='png'):
         opts = ''
     image = subprocess.Popen('import {0} {1}:-'.format(opts, itype),
                              shell=True,
-                             stdout=subprocess.PIPE)
-    img = image.communicate()[0]
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    stdout, stderr = image.communicate()
+    if stderr:
+        raise RuntimeError(f"Cannot capture a screenshot. "
+                           f"Reason: {stderr.decode()}")
+    return stdout
 
+
+def get_screenshot(root=False, itype='png'):
+    img = _get_screenshot(root=root, itype=itype)
     return Attachment(img, 'screenshot.' + itype)
 
 
