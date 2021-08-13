@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 class Config(object):
     defaults = {'url': 'http://localhost:8181/Olog',
-                'username': os.environ['USER']}
+                'username': getpass.getuser()}
     conf_files = ['/etc/pyOlog.conf',
                   os.path.expanduser('~/pyOlog.conf'),
                   os.path.expanduser('~/.pyOlog.conf'),
