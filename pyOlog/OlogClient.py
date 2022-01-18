@@ -44,7 +44,7 @@ class OlogClient(object):
     logbooks_resource = '/resources/logbooks'
     attachments_resource = '/resources/attachments'
 
-    def __init__(self, url=None, username=None, password=None, ask=True):
+    def __init__(self, url=None, username=None, password=None, ask=True, old_olog_api=None):
         '''
         Initialize OlogClient and configure session
         :param url: The base URL of the Olog glassfish server.
@@ -60,6 +60,9 @@ class OlogClient(object):
         self.verify = False
         username = _conf.get_username(username)
         password = _conf.get_value('password', password)
+        self._old_olog_api = _conf.get_value('old_olog_api', old_olog_api)
+        if self._old_olog_api == 'true' or self._old_olog_api == 'True`':
+            self._old_olog_api = True
 
         if username and not password and ask:
             # try methods for a password
@@ -130,7 +133,11 @@ class OlogClient(object):
         '''
         resp = self._post(self.logs_resource,
                           data=LogEntryEncoder().encode(log_entry))
-        id = LogEntryDecoder().dictToLogEntry(resp.json()[0]).id
+        if self._old_olog_api:
+            id = LogEntryDecoder().dictToLogEntry(resp.json()[0]).id
+        else:
+            id = LogEntryDecoder().dictToLogEntry(resp.json()['log'][0]).id
+
 
         # Handle attachments
 
