@@ -50,11 +50,15 @@ class OlogClient(object):
         :param url: The base URL of the Olog glassfish server.
         :param username: The username for authentication.
         :param password: The password for authentication.
+        :param old_olog_api: boolean
         If :param username: is None, then the username will be read
         from the config file. If no :param username: is avaliable then
         the session is opened without authentication.
         If  :param ask: is True, then the olog will try using both
         the keyring module and askpass to get a password.
+        If :param old_olog_api: is None, then it will be read from the
+        config file. Set to the string "True" or "true" in the config 
+        file, any other values will be interpreted as False.
         '''
         self._url = _conf.get_value('url', url)
         self.verify = False
