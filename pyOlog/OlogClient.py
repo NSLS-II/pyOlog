@@ -44,22 +44,30 @@ class OlogClient(object):
     logbooks_resource = '/resources/logbooks'
     attachments_resource = '/resources/attachments'
 
-    def __init__(self, url=None, username=None, password=None, ask=True):
+    def __init__(self, url=None, username=None, password=None, ask=True, old_olog_api=None):
         '''
         Initialize OlogClient and configure session
         :param url: The base URL of the Olog glassfish server.
         :param username: The username for authentication.
         :param password: The password for authentication.
+        :param old_olog_api: Use the old olog api.
         If :param username: is None, then the username will be read
         from the config file. If no :param username: is avaliable then
         the session is opened without authentication.
         If  :param ask: is True, then the olog will try using both
         the keyring module and askpass to get a password.
+        If :param old_olog_api: is None, then it will be read from the
+        config file. Set to the string "True" or "true" in the config 
+        file, any other values will be interpreted as False.
         '''
         self._url = _conf.get_value('url', url)
         self.verify = False
         username = _conf.get_username(username)
         password = _conf.get_value('password', password)
+        self._old_olog_api = _conf.get_value('old_olog_api', old_olog_api)
+        self._old_olog_api = (self._old_olog_api == True 
+                              or self._old_olog_api == 'True' 
+                              or self._old_olog_api == 'true')
 
         if username and not password and ask:
             # try methods for a password
@@ -130,7 +138,11 @@ class OlogClient(object):
         '''
         resp = self._post(self.logs_resource,
                           data=LogEntryEncoder().encode(log_entry))
-        id = LogEntryDecoder().dictToLogEntry(resp.json()[0]).id
+        if self._old_olog_api:
+            id = LogEntryDecoder().dictToLogEntry(resp.json()[0]).id
+        else:
+            id = LogEntryDecoder().dictToLogEntry(resp.json()['log'][0]).id
+
 
         # Handle attachments
 
