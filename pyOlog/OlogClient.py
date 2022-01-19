@@ -68,7 +68,6 @@ class OlogClient(object):
         self._old_olog_api = (self._old_olog_api == True 
                               or self._old_olog_api == 'True' 
                               or self._old_olog_api == 'true')
-        print(self._old_olog_api)
 
         if username and not password and ask:
             # try methods for a password
