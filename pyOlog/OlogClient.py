@@ -50,8 +50,7 @@ class OlogClient(object):
         :param url: The base URL of the Olog glassfish server.
         :param username: The username for authentication.
         :param password: The password for authentication.
-        :param old_olog_api: None to read from config file, True to use
-        the old olog api.
+        :param old_olog_api: Use the old olog api.
         If :param username: is None, then the username will be read
         from the config file. If no :param username: is avaliable then
         the session is opened without authentication.
