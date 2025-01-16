@@ -10,9 +10,9 @@ url=http://localhost:8000/Olog
 
 def __loadConfig():
     import os.path
-    import ConfigParser
+    import configparser
     dflt={'url':'https://localhost:8181/Olog'}
-    cf=ConfigParser.SafeConfigParser(defaults=dflt)
+    cf=configparser.ConfigParser(defaults=dflt)
     cf.read([
         '/etc/pyOlog.conf',
         os.path.expanduser('~/pyOlog.conf'),
