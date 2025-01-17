@@ -34,7 +34,7 @@ class Config(object):
         self.heading = conf
 
         from six.moves import configparser
-        self.cf = configparser.SafeConfigParser(defaults=self.defaults)
+        self.cf = configparser.ConfigParser(defaults=self.defaults)
         files = self.cf.read(self.conf_files)
 
         for f in files:
